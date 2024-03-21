@@ -16,6 +16,12 @@ credenciais = [item.split('->') for item in credenciais]
 # Atribui cada chave ao seu valor
 credenciais = {chave: valor.strip() for chave, valor in credenciais}
 
+# Verifica se a competencia está correta
+meses = ['jan', 'fev', 'mar', 'abr',
+         'mai', 'jun', 'jul', 'ago',
+         'set', 'out', 'nov', 'dez']
+assert credenciais['Competencia'] in meses, f'A competência precisa esta na forma:\n{meses}'
+
 # Simbolo de carregamento
 # //*[@id="mpProgressoContentTable"]/tbody/tr/td/div
 
@@ -59,6 +65,39 @@ def clica(xpath: str, n: int = 50) -> None:
     print(f'Erro ao clicar em {xpath}')
 
 
+def escolhe_mes(mes: str) -> None:
+    """
+    Clica no mês correto para a consulta
+    """
+    # Clica na competência
+    clica('//*[@id="consultarnfseForm:competenciaHeader"]/label/div')
+    # Escolhe o mês correto:
+    if mes == 'jan':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM0"]')
+    elif mes == 'fev':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM1"]')
+    elif mes == 'mar':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM2"]')
+    elif mes == 'abr':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM3"]')
+    elif mes == 'mai':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM4"]')
+    elif mes == 'jun':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM5"]')
+    elif mes == 'jul':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM6"]')
+    elif mes == 'ago':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM7"]')
+    elif mes == 'set':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM8"]')
+    elif mes == 'out':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM9"]')
+    elif mes == 'nov':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM10"]')
+    elif mes == 'dez':
+        clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM11"]')
+
+
 def run():
     # Vai para o site do ISS Fortaleza
     nav.get('https://iss.fortaleza.ce.gov.br/grpfor/login.seam?cid=928590')
@@ -100,11 +139,8 @@ def run():
     clica('//*[@id="consultarnfseForm:competencia_prestador_tab_lbl"]')
     # Aguarda o carregamento da página
     sleep(1)
-    # Clica na competência
-    clica('//*[@id="consultarnfseForm:competenciaHeader"]/label/div')
-    # Escolhe o mês correto:
-    clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM1"]') # Fevereiro
-    #clica em 'OK'
+    escolhe_mes(credenciais['Competencia'])
+    # clica em 'OK'
     clica('//*[@id="consultarnfseForm:competenciaDateEditorButtonOk"]/span')
     # Clica em 'Consultar'
     clica('//*[@id="consultarnfseForm:j_id231"]')
@@ -137,14 +173,15 @@ def run():
 
     # Percorre cada página
     for pag in range(n_pags):
-        # Aguarda o fim da consulta
-        wait.until(EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
-        clica(next_page)
+        sleep(1)
         # Clica em '>' para avançar até a página correta
         for _ in range(pag):
             # Aguarda o fim da consulta
-            wait.until(EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+            wait.until(
+                EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
             clica(next_page)
+        wait.until(EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+        sleep(1)
         '''
         Em cada página há um tabela está na forma :
             Resultado da Consulta
@@ -163,7 +200,7 @@ def run():
             .
             DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos            
             DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos
-         
+
         a função split('\n) separa os itens, criando uma lista, e a slicing [-10:] guarda apenas os últimos 10 
         elementos, que são os dados das Notas Fiscais.
         Em cada item desta lista, as seguintes informações podem ser extraídas:
@@ -185,6 +222,11 @@ def run():
                 n_items = 10 - i
                 items = items[:n_items]
                 break
+
+        if pag > 0:
+            sleep(1)
+            # Clica em '««' para voltar para a primeira página
+            clica('//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
 
         for i, item in enumerate(items):
             #
@@ -221,23 +263,21 @@ def run():
             # Clica em 'Competência/Tomador'
             clica('//*[@id="consultarnfseForm:competencia_prestador_tab_lbl"]')
             # Aguarda o carregamento
-            wait.until(EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
-            # Clica na competência
-            clica('//*[@id="consultarnfseForm:competenciaHeader"]/label/div')
-            # Escolhe o mês correto:
-            clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM1"]')  # Fevereiro
+            wait.until(
+                EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+            escolhe_mes(credenciais['Competencia'])
             # clica em 'OK'
             clica('//*[@id="consultarnfseForm:competenciaDateEditorButtonOk"]/span')
             # Clica em 'Consultar'
             clica('//*[@id="consultarnfseForm:j_id231"]')
             # Aguarda o fim da consulta
-            wait.until(EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+            wait.until(
+                EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
 
         if pag > 0:
             sleep(0.5)
             # Clica em '««' para voltar para a primeira página
             clica('//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
-
 
     sleep(5)
 
