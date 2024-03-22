@@ -22,6 +22,12 @@ meses = ['jan', 'fev', 'mar', 'abr',
          'set', 'out', 'nov', 'dez']
 assert credenciais['Competencia'] in meses, f'A competência precisa esta na forma:\n{meses}'
 
+dia = credenciais['Dia']
+
+# Verifica se o dia está correto
+assert dia[:2].isnumeric() and dia[2] == '/' and dia[3:5].isnumeric() and dia[5] == '/' and dia[6:].isnumeric(),\
+    'A data precisa estar no formato DD/MM/AAAA'
+
 # Simbolo de carregamento
 # //*[@id="mpProgressoContentTable"]/tbody/tr/td/div
 
@@ -162,6 +168,10 @@ def run():
     if '10' in items:
         # Clica em '>>' para ir para a última página
         clica('//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[16]')
+        # Aguarda o fim da consulta
+        wait.until(
+            EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+        # Acessa o último número de página do rodapé da tabela
         n_pags = int(nav.find_element('xpath',
                                       '//*[@id="consultarnfseForm:dataTable:j_id368_table"]').text.split()[-3])
         next_page = '//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[15]'
@@ -230,8 +240,10 @@ def run():
 
         for i, item in enumerate(items):
             #
-            print(pag, item.split()[2], item.split()[1], ' '.join(item.split()[4:-2]))
-            #
+            print(pag, item.split()[0], item.split()[2], item.split()[1], ' '.join(item.split()[4:-2]))
+            # Verifica se a nota é do dia especificado
+            if item.split()[0] != dia:
+                continue
             # Verifica se a nota foi cancelada
             if item.split()[2] == 'CANCELADA':
                 continue
@@ -252,12 +264,12 @@ def run():
             nome_arq = fr'{path}\{nome_emp}-{num_nf}.pdf'
             for _ in range(20):
                 # Tenta renomear a nota, caso ela ainda esteja sendo baixada, espera
-                # 0.5 segundos e tenta novamente.
+                # 1 segundo e tenta novamente.
                 try:
                     rename(nome_ant, nome_arq)
                     break
                 except Exception as e:
-                    sleep(0.5)
+                    sleep(1)
             # Clica em 'Voltar'
             clica('//*[@id="j_id157:panelAcoes"]/tbody/tr/td[2]/input')
             # Clica em 'Competência/Tomador'
