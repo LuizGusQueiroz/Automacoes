@@ -59,7 +59,11 @@ while not nav.find_elements('xpath', '/html/body/div/div[3]/div/h2'):
     sleep(1)
 
 # Clica em 'Entra no Sistema'
-clica('/html/body/div/div[3]/div/p[3]/a')
+try:
+    clica('/html/body/div/div[3]/div/p[3]/a')
+except Exception:
+    # O botão não existe, não é necessário fazer nada
+    pass
 
 espera_aparecer('//*[@id="DataTables_Table_0_wrapper"]')
 '''
@@ -84,6 +88,7 @@ O slicing [6:-2] guarda apenas as linhas com os dados das empresas para se decid
 '''
 empresas = nav.find_element('xpath', '//*[@id="DataTables_Table_0_wrapper"]').text.split('\n')[6:-2]
 
+
 for i, empresa in enumerate(empresas, start=1):
     inscricao = empresa.split()[-2]
     if inscricao == dados['Inscricao']:
@@ -98,10 +103,11 @@ clica('/html/body/div[1]/div[4]/div/div/div[1]/div[1]/div[2]/div/div/div[1]/h3/a
 clica('//*[@id="form"]/fieldset/div/div[2]/p/input[1]')
 # Preenche o intervalo
 # 'De'
+nav.find_element('xpath', '//*[@id="form"]/fieldset/div/div[2]/p/input[2]').clear()
 nav.find_element('xpath', '//*[@id="form"]/fieldset/div/div[2]/p/input[2]').send_keys(dados['DataInicial'])
 # 'Até'
+nav.find_element('xpath', '//*[@id="form"]/fieldset/div/div[2]/p/input[3]').clear()
 nav.find_element('xpath', '//*[@id="form"]/fieldset/div/div[2]/p/input[3]').send_keys(dados['DataFinal'])
-
 # Clica em 'Buscar'
 clica('//*[@id="form"]/fieldset/div/div[3]/p/span/span/input')
 
