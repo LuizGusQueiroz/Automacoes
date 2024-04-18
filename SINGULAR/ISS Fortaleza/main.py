@@ -5,7 +5,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support import expected_conditions as EC
 
-from os import listdir, rename
+from os import listdir, rename, path, mkdir, getcwd
 from time import sleep
 
 with open('config.txt', 'r') as file:
@@ -31,7 +31,10 @@ assert dia[:2].isnumeric() and dia[2] == '/' and dia[3:5].isnumeric() and dia[5]
 # Simbolo de carregamento
 # //*[@id="mpProgressoContentTable"]/tbody/tr/td/div
 
-path = credenciais['Diretorio']
+# Cria a pasta para onde as notas irão
+if not path.exists('notas'):
+    mkdir('notas')
+path = fr'{getcwd()}\notas'
 
 # Configurações do Chrome
 options = Options()
@@ -77,6 +80,8 @@ def escolhe_mes(mes: str) -> None:
     """
     # Clica na competência
     clica('//*[@id="consultarnfseForm:competenciaHeader"]/label/div')
+    wait.until(EC.element_to_be_clickable(('xpath',
+                                           '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM0"]')))
     # Escolhe o mês correto:
     if mes == 'jan':
         clica('//*[@id="consultarnfseForm:competenciaDateEditorLayoutM0"]')
@@ -106,24 +111,28 @@ def escolhe_mes(mes: str) -> None:
 
 def run():
     # Vai para o site do ISS Fortaleza
-    nav.get('https://iss.fortaleza.ce.gov.br/grpfor/login.seam?cid=928590')
+    nav.get('https://idp2.sefin.fortaleza.ce.gov.br/realms/sefin/protocol/openid-connect/auth?nonce=5d91026e-7a08-412f-a50d-91cc2c2576c9&response_type=code&client_id=iss.sefin.fortaleza.ce.gov.br&redirect_uri=https%3A%2F%2Fiss.fortaleza.ce.gov.br%2Fgrpfor%2Foauth2%2Fcallback&scope=openid+profile&state=secret-eb17c44e-25ca-4b8c-bda8-46d8f4d5fee0')
     # Aguarda o site carregar
     sleep(1)
     # Verifica se está na página de Login
-    while nav.find_elements('xpath', '//*[@id="login:botaoEntrar"]'):
+    while nav.find_elements('xpath', '//*[@id="botao-entrar"]'):
         # Preenche as informações de Login
-        nav.find_element('xpath', '//*[@id="login:password"]').clear()  # Limpa a senha atual
-        nav.find_element('xpath', '//*[@id="login:username"]').send_keys(credenciais['LOGIN ISS'])
-        nav.find_element('xpath', '//*[@id="login:password"]').send_keys(credenciais['SENHA ISS'])
-        nav.find_element('xpath', '//*[@id="login:captchaDecor:captchaLogin"]').send_keys()
-        # Espera o usuário preencher o captcha
-        sleep(10)
+        nav.find_element('xpath', '//*[@id="username"]').clear()  # Limpa a senha atual
+        nav.find_element('xpath', '//*[@id="username"]').send_keys(credenciais['LOGIN ISS'])
+        nav.find_element('xpath', '//*[@id="password"]').send_keys(credenciais['SENHA ISS'])
+        # Clica em entrar
+        clica(
+            '//*[@id="botao-entrar"]')
+        sleep(1)
     # Aguarda o carregamento da página
-    sleep(1)
-
+    sleep(2)
+    # Clica em 'Fazer Login'
+    clica('//*[@id="login"]/div[1]/div[2]/a[1]')
+    sleep(2)
     # Extrai os cnpjs a partir de uma tabela
     cnpjs = nav.find_element('xpath', '//*[@id="alteraInscricaoForm"]').text.split('\n')
     cnpjs = cnpjs[5::3]
+
 
     achou = False
     for i, cnpj in enumerate(cnpjs):
@@ -181,115 +190,116 @@ def run():
         n_pags = int(items[-1])
         next_page = f'//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[{15 - 10 + n_pags}]'
 
-    # Percorre cada página
-    for pag in range(n_pags):
-        sleep(1)
-        # Clica em '>' para avançar até a página correta
-        for _ in range(pag):
-            # Aguarda o fim da consulta
-            wait.until(
-                EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
-            clica(next_page)
-        wait.until(EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
-        sleep(1)
-        '''
-        Em cada página há um tabela está na forma :
-            Resultado da Consulta
-            Data de Emissão
-            Número da NFS-e
-            Situação
-            CPF/CNPJ do Tomador
-            Nome Tomador
-            Base de Cálculo
-            Imposto
-            «« « 1 2 3 4 5 6 7 8 9 » »»
-            DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos
-            DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos
-            .
-            .
-            .
-            DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos            
-            DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos
-
-        a função split('\n) separa os itens, criando uma lista, e a slicing [-10:] guarda apenas os últimos 10 
-        elementos, que são os dados das Notas Fiscais.
-        Em cada item desta lista, as seguintes informações podem ser extraídas:
-            -> Data:            item.split()[0]
-            -> Número da NF:    item.split()[1]
-            -> Situação:        item.split()[2]
-            -> CNPJ:            item.split()[4]
-            -> Nome Empresa:    item.split()[5:-2]
-            -> Base de Cálculo: item.split()[-2]
-            -> Impostos:        item.split()[-1]
-        '''
-        items = nav.find_element('xpath', '//*[@id="id_dados_consulta"]').text.split('\n')[-10:]
-
-        # Por padrão, há 10 items por página
-        n_items = 10
-        # Verifica se há menos que 10
-        for i, item in enumerate(items, start=1):
-            if '«« « ' in item:
-                n_items = 10 - i
-                items = items[:n_items]
-                break
-
-        if pag > 0:
+    # Percorre todas as páginas 2 vezes, pois alguns downloads são bloqueados pela verificação de vírus.
+    for _ in range(2):
+        # Percorre cada página
+        for pag in range(n_pags):
             sleep(1)
-            # Clica em '««' para voltar para a primeira página
-            clica('//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
-
-        for i, item in enumerate(items):
-            #
-            print(pag, item.split()[0], item.split()[2], item.split()[1], ' '.join(item.split()[4:-2]))
-            # Verifica se a nota é do dia especificado
-            if item.split()[0] != dia:
-                continue
-            # Verifica se a nota foi cancelada
-            if item.split()[2] == 'CANCELADA':
-                continue
-            # Verifica se a nota já foi baixada
-            nome_emp = ' '.join(item.split()[4:-2])
-            num_nf = item.split()[1]
-            if f'{nome_emp}-{num_nf}.pdf' in listdir(path):
-                continue
             # Clica em '>' para avançar até a página correta
             for _ in range(pag):
+                # Aguarda o fim da consulta
+                wait.until(
+                    EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
                 clica(next_page)
-            # Clica no símbolo de lupa da Nota Fiscal
-            clica(f'//*[@id="consultarnfseForm:dataTable:{i}:j_id360"]')
-            # Clica em 'Exportar para PDF'
-            clica('//*[@id="j_id157:panelAcoes"]/tbody/tr/td[1]/input')
-            # Renomeia o Arquivo
-            nome_ant = fr'{path}\relatorio.pdf'
-            nome_arq = fr'{path}\{nome_emp}-{num_nf}.pdf'
-            for _ in range(20):
-                # Tenta renomear a nota, caso ela ainda esteja sendo baixada, espera
-                # 1 segundo e tenta novamente.
-                try:
-                    rename(nome_ant, nome_arq)
-                    break
-                except Exception as e:
-                    sleep(1)
-            # Clica em 'Voltar'
-            clica('//*[@id="j_id157:panelAcoes"]/tbody/tr/td[2]/input')
-            # Clica em 'Competência/Tomador'
-            clica('//*[@id="consultarnfseForm:competencia_prestador_tab_lbl"]')
-            # Aguarda o carregamento
-            wait.until(
-                EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
-            escolhe_mes(credenciais['Competencia'])
-            # clica em 'OK'
-            clica('//*[@id="consultarnfseForm:competenciaDateEditorButtonOk"]/span')
-            # Clica em 'Consultar'
-            clica('//*[@id="consultarnfseForm:j_id231"]')
-            # Aguarda o fim da consulta
-            wait.until(
-                EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+            sleep(6)
+            '''
+            Em cada página há um tabela está na forma :
+                Resultado da Consulta
+                Data de Emissão
+                Número da NFS-e
+                Situação
+                CPF/CNPJ do Tomador
+                Nome Tomador
+                Base de Cálculo
+                Imposto
+                «« « 1 2 3 4 5 6 7 8 9 » »»
+                DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos
+                DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos
+                .
+                .
+                .
+                DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos            
+                DD/MM/AAAA NumNF Situação CNPJ Nome da Empresa Base-Cálculo Impostos
+    
+            a função split('\n) separa os itens, criando uma lista, e a slicing [-10:] guarda apenas os últimos 10 
+            elementos, que são os dados das Notas Fiscais.
+            Em cada item desta lista, as seguintes informações podem ser extraídas:
+                -> Data:            item.split()[0]
+                -> Número da NF:    item.split()[1]
+                -> Situação:        item.split()[2]
+                -> CNPJ:            item.split()[4]
+                -> Nome Empresa:    item.split()[5:-2]
+                -> Base de Cálculo: item.split()[-2]
+                -> Impostos:        item.split()[-1]
+            '''
+            items = nav.find_element('xpath', '//*[@id="id_dados_consulta"]').text.split('\n')[-10:]
 
-        if pag > 0:
-            sleep(0.5)
-            # Clica em '««' para voltar para a primeira página
-            clica('//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
+            # Por padrão, há 10 items por página
+            n_items = 10
+            # Verifica se há menos que 10
+            for i, item in enumerate(items, start=1):
+                if '«« « ' in item:
+                    n_items = 10 - i
+                    items = items[:n_items]
+                    break
+
+            if pag > 0:
+                sleep(1)
+                # Clica em '««' para voltar para a primeira página
+                clica('//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
+
+            for i, item in enumerate(items):
+                #
+                print(pag, item.split()[0], item.split()[2], item.split()[1], ' '.join(item.split()[4:-2]))
+                # Verifica se a nota é do dia especificado
+                if item.split()[0] != dia:
+                    continue
+                # Verifica se a nota foi cancelada
+                if item.split()[2] == 'CANCELADA':
+                    continue
+                # Verifica se a nota já foi baixada
+                nome_emp = ' '.join(item.split()[4:-2])
+                num_nf = item.split()[1]
+                if f'{nome_emp}-{num_nf}.pdf' in listdir(path):
+                    continue
+                # Clica em '>' para avançar até a página correta
+                for _ in range(pag):
+                    clica(next_page)
+                # Clica no símbolo de lupa da Nota Fiscal
+                clica(f'//*[@id="consultarnfseForm:dataTable:{i}:j_id360"]')
+                # Clica em 'Exportar para PDF'
+                clica('//*[@id="j_id157:panelAcoes"]/tbody/tr/td[1]/input')
+                # Renomeia o Arquivo
+                nome_ant = fr'{path}\relatorio.pdf'
+                nome_arq = fr'{path}\{nome_emp}-{num_nf}.pdf'
+                for _ in range(20):
+                    # Tenta renomear a nota, caso ela ainda esteja sendo baixada, espera
+                    # 1 segundo e tenta novamente.
+                    try:
+                        rename(nome_ant, nome_arq)
+                        break
+                    except Exception as e:
+                        sleep(1)
+                # Clica em 'Voltar'
+                clica('//*[@id="j_id157:panelAcoes"]/tbody/tr/td[2]/input')
+                # Clica em 'Competência/Tomador'
+                clica('//*[@id="consultarnfseForm:competencia_prestador_tab_lbl"]')
+                # Aguarda o carregamento
+                wait.until(
+                    EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+                escolhe_mes(credenciais['Competencia'])
+                # clica em 'OK'
+                clica('//*[@id="consultarnfseForm:competenciaDateEditorButtonOk"]/span')
+                # Clica em 'Consultar'
+                clica('//*[@id="consultarnfseForm:j_id231"]')
+                # Aguarda o fim da consulta
+                wait.until(
+                    EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+
+            if pag > 0:
+                sleep(0.5)
+                # Clica em '««' para voltar para a primeira página
+                clica('//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
 
     sleep(5)
 
