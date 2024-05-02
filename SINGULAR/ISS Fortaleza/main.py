@@ -136,7 +136,8 @@ def run():
 
     achou = False
     for i, cnpj in enumerate(cnpjs):
-        cnpj_num = ''.join([c for c in cnpj if c.isnumeric()])
+        cnpj_num =\
+            ''.join([c for c in cnpj if c.isnumeric()])
 
         if cnpj == credenciais['CNPJ'] or cnpj_num == credenciais['CNPJ']:
             achou = True
