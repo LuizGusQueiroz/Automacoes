@@ -145,6 +145,8 @@ def run():
             if not path.exists(f'notas/{empresa}/{condominio}-{num_nf}.pdf'):
                 # Move o arquivo para a nova pasta
                 rename(nota, f'notas/{empresa}/{condominio}-{num_nf}.pdf')
+        # Avança para a próxima página.
+        next_page.click()
     nav.quit()
 
 
