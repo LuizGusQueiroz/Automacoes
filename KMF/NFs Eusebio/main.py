@@ -1,5 +1,4 @@
 from os import listdir, path, mkdir, rename, getcwd, remove
-from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import *
 from selenium.webdriver.chrome.options import Options
@@ -111,6 +110,8 @@ def run():
     interact('click', '//*[@id="nota_fiscal_search"]/div[2]/input')
     # Verifica quantas páginas existem
     n_pags = int(nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav').text.split('\n')[-2])
+    # Indicador do fim das notas
+    acabou = False
     # Percorre todas as páginas
     for pag in range(n_pags):
         # Guarda o botão de próxima página.
@@ -125,8 +126,15 @@ def run():
                 break
         # Percorre todas as notas
         for idx in range(1, n_notas+1):
-            interact('click',
+            # Verifica se a data é a mesma
+            data_i = table[3*idx-3].split()[1]
+            data_i = datetime(int(data_i[6:]), int(data_i[3:5]), int(data_i[:2]))
+            if data_i == data:
+                interact('click',
                      f'/html/body/div[2]/section/div/div[3]/div/div/table/tbody/tr[{idx}]/td[11]/div/a[1]/button')
+            elif data_i < data:
+                acabou = True
+                break
             sleep(1)
         sleep(3)
         # Renomeia as notas
@@ -159,6 +167,11 @@ def run():
             if not path.exists(f'notas/{empresa}/{condominio}-{num_nf}.pdf'):
                 # Move o arquivo para a nova pasta
                 rename(nota, f'notas/{empresa}/{condominio}-{num_nf}.pdf')
+            else: # Apaga a nota
+                remove(nota)
+
+        if acabou:
+            break
         # Avança para a próxima página se não estiver na última.
         if pag != n_pags - 1:
             next_page.click()
