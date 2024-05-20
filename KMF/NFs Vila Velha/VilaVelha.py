@@ -87,7 +87,7 @@ def run():
         interact('clear', '//*[@id="senha"]')
         interact('write', '//*[@id="senha"]', dados['SENHA'])
         interact('write', '/html/body/div/div/div[1]/form/div/div[7]/input', '')
-        sleep(7)
+        sleep(10)
         # Clica em Confirmar.
         interact('click', '/html/body/div/div/div[1]/form/div/div[9]/a[1]')
 
@@ -127,8 +127,10 @@ def run():
             # Acessa a emissão e converte para datetime
             emissao = nota.split()[2]
             emissao = datetime(int(emissao[6:]), int(emissao[3:5]), int(emissao[:2]))
-            # Se já passou da data desejada, encerra a execução.
+            # Se já passou da data desejada, fecha o navegador e encerra a execução.
             if emissao < data:
+                sleep(1)
+                nav.quit()
                 return
 
             situacao = nota.split()[1]
@@ -151,41 +153,48 @@ def run():
                         break
                 # Desmarca a nota clicando no quadrado à sua esquerda.
                 # Dá uma pausa antes e após clicar para evitar bugs que acontecem quando se clica muito rápido.
-                sleep(1)
+                sleep(0.5)
                 interact('click', f'//*[@id="{i},-1_gridListaFoco"]')
-                sleep(1)
+                sleep(0.5)
         # Clica na seta para avançar para a próxima páina.
         interact('click', '//*[@id="gridLista"]/div[2]/div[1]/div/ul/li[7]/a')
-        sleep(3)
-    # ------------------------------------------------------------
-    # Lê cada pdf, encontra a razão social e o move para sua pasta
-    notas = [nota for nota in listdir('notas') if '.pdf' in nota]
-    for nota in notas:
-        arq = f'notas/{nota}'
-
-        with open(arq, 'rb') as file:
-            # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
-            pdf_reader = PdfReader(file)
-            # Extrai o texto do PDF
-            pags = pdf_reader.pages[0].extract_text().split('\n')
-
-        # Acessa o nome da empresa, do condominio e o número da nota fiscal.
-        # Procura a empresa
-        for pag in pags[10:]:
-            if 'CNPJ/CPF:' in pag:
-                condominio = pag[9:]
-                break
-        empresa = pags[8]
-        num_nf = pags[5][:4]
-        # Verifica se ja há uma pasta para esta empresa
-        if not path.exists(f'notas/{empresa}'):
-            mkdir(f'notas/{empresa}')
-        # Verifica se o arquivo já existe na pasta.
-        if not path.exists(f'notas/{empresa}/{condominio}-{num_nf}.pdf'):
-            # Move o arquivo para a nova pasta
-            rename(arq, f'notas/{empresa}/{condominio}-{num_nf}.pdf')
-
-    nav.quit()
+        sleep(2)
 
 
 run()
+
+# ------------------------------------------------------------
+# Lê cada pdf, encontra a razão social e o move para sua pasta
+notas = [nota for nota in listdir('notas') if '.pdf' in nota]
+for nota in notas:
+    arq = f'notas/{nota}'
+
+    with open(arq, 'rb') as file:
+        # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
+        pdf_reader = PdfReader(file)
+        # Extrai o texto do PDF
+        rows = pdf_reader.pages[0].extract_text().split('\n')
+
+    # Acessa o nome da empresa, do condominio e o número da nota fiscal.
+    # Procura o nome da empresa
+    for i, row in enumerate(rows):
+        if 'CNPJ/CPF:' in row:
+            empresa = rows[i+1]
+            break
+    # Procura o nome do condomínio
+    for row in rows[10:]:
+        if 'CNPJ/CPF:' in row:
+            condominio = row[9:]
+            break
+    # Procura o número da nofa fiscal
+    for row in rows:
+        if 'Data Emissão' in row:
+            num_nf = row[:4]
+            break
+    # Verifica se ja há uma pasta para esta empresa
+    if not path.exists(f'notas/{empresa}'):
+        mkdir(f'notas/{empresa}')
+    # Verifica se o arquivo já existe na pasta.
+    if not path.exists(f'notas/{empresa}/{condominio}-{num_nf}.pdf'):
+        # Move o arquivo para a nova pasta
+        rename(arq, f'notas/{empresa}/{condominio}-{num_nf}.pdf')
