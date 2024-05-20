@@ -1,7 +1,7 @@
 from os import listdir, path, mkdir, rename, getcwd, remove
 from selenium.common.exceptions import NoSuchElementException
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import ElementNotInteractableException
+from selenium.common.exceptions import *
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
@@ -37,7 +37,7 @@ def espera_aparecer(xpath: str, n: int = 20) -> None:
     raise NoSuchElementException(f'{xpath} não encontrado em {n} segundos de espera')
 
 
-def interact(action: str, xpath: str, keys: str = None) -> None:
+def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10) -> None:
     """
     Interage com determinado elemento na tela.
     Primeiro chama a função 'espera_aparecer' para não causar erro de Not Found.
@@ -47,22 +47,36 @@ def interact(action: str, xpath: str, keys: str = None) -> None:
     if action not in actions:
         raise TypeError(f'{action} must be in {actions}')
     espera_aparecer(xpath)
-    try:
-        # Find the element
-        element = nav.find_element('xpath', xpath)
-        # Choose the right action to do
-        if   action == 'click':
-            element.click()
-        elif action == 'write':
-            element.send_keys(keys)
-        elif action == 'clear':
-            element.clear()
-        return
-    except NoSuchElementException:
-        print(f'Item com xpath {xpath} não encontrado')
-    except ElementNotInteractableException:
-        sleep(1)
-    raise NoSuchElementException()
+    for try_i in range(n_tries):
+        try:
+            # Find the element
+            element = nav.find_element('xpath', xpath)
+            # Choose the right action to do
+            if   action == 'click':
+                element.click()
+            elif action == 'write':
+                element.send_keys(keys)
+            elif action == 'clear':
+                element.clear()
+            return
+        except NoSuchElementException:
+            if try_i == n_tries - 1:
+                print(f'Item com xpath {xpath} não encontrado')
+            sleep(1)
+        except ElementNotInteractableException:
+            if try_i == n_tries - 1:
+                print(f'Elemento com xpath {xpath} indisponível ou oculto.')
+            sleep(1)
+        except ElementClickInterceptedException:
+            if try_i == n_tries - 1:
+                print(f'Elemento com xpath {xpath} interceptado ou sobreposto.')
+            sleep(1)
+        except UnexpectedAlertPresentException:
+            try:
+                alert = nav.switch_to.alert
+                alert.dismiss()  # Recusa o alerta
+            except NoAlertPresentException:
+                pass
 
 
 # Lê as credenciais de acesso
@@ -97,11 +111,11 @@ def run():
     interact('click', '//*[@id="nota_fiscal_search"]/div[2]/input')
     # Verifica quantas páginas existem
     n_pags = int(nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav').text.split('\n')[-2])
-    # Guarda o botão de próxima página.
-    next_page = nav.find_element(By.CSS_SELECTOR,
-    'body > div.wrapper > section > div > div.card.card-default > div > div > nav > ul > li.next.next_page.page-item > a')
     # Percorre todas as páginas
     for pag in range(n_pags):
+        # Guarda o botão de próxima página.
+        next_page = nav.find_element(By.CSS_SELECTOR,
+        'body > div.wrapper > section > div > div.card.card-default > div > div > nav > ul > li.next.next_page.page-item > a')
         # Conta quantas notas há na tabela
         table = nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div').text.split('\n')
         for i, row in enumerate(table):
@@ -145,8 +159,9 @@ def run():
             if not path.exists(f'notas/{empresa}/{condominio}-{num_nf}.pdf'):
                 # Move o arquivo para a nova pasta
                 rename(nota, f'notas/{empresa}/{condominio}-{num_nf}.pdf')
-        # Avança para a próxima página.
-        next_page.click()
+        # Avança para a próxima página se não estiver na última.
+        if pag != n_pags - 1:
+            next_page.click()
     nav.quit()
 
 
