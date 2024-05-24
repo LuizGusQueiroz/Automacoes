@@ -1,13 +1,7 @@
-import win32security
+from os import listdir, path, getlogin
 import ntsecuritycon as con
-from os import listdir, path
+import win32security
 
-logins = {
-    'folder': {
-        'user1': '123',
-        'user2': 'abc'
-        }
-}
 
 def set_folder_permissions(folder_path, sid, permission_type):
     folder_security_descriptor = win32security.GetFileSecurity(
@@ -18,6 +12,12 @@ def set_folder_permissions(folder_path, sid, permission_type):
     if permission_type == 'deny':
         dacl.AddAccessDeniedAce(win32security.ACL_REVISION, con.FILE_ALL_ACCESS, sid)
     elif permission_type == 'allow':
+        # Remover qualquer ACE de negação existente antes de adicionar a de permissão
+        for i in range(dacl.GetAceCount()):
+            ace = dacl.GetAce(i)
+            if ace[2] == sid and ace[1] & con.FILE_ALL_ACCESS:
+                dacl.DeleteAce(i)
+                break
         dacl.AddAccessAllowedAce(win32security.ACL_REVISION, con.FILE_ALL_ACCESS, sid)
 
     folder_security_descriptor.SetSecurityDescriptorDacl(1, dacl, 0)
@@ -29,19 +29,12 @@ def lock_folder(folder_path):
     set_folder_permissions(folder_path, sid, "deny")
 
 
-def unlock_folder(folder_path, login, password, username):
-    if logins.get(folder_path, {' ': None}).get(login) == password:
-        sid, domain, type = win32security.LookupAccountName(None, username)
-        set_folder_permissions(folder_path, sid, "allow")
-        print("Pasta desbloqueada!")
-    else:
-        print("Login inválido")
+def unlock_folder(folder_path, username):
+    sid, domain, type = win32security.LookupAccountName(None, username)
+    set_folder_permissions(folder_path, sid, "allow")
 
 
-# Define a pasta como a primeira encontrada
+# Desbloqueia todas as pastas no diretório.
 for file in listdir():
     if path.isdir(file):
-        # Solicita login e senha para desbloquear.
-        login = input('Login: ')
-        password = input('Senha: ')
-        unlock_folder(file, login, password, 'Usuario')
+        unlock_folder(file, getlogin())

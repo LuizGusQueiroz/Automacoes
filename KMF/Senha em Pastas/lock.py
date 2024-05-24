@@ -1,6 +1,6 @@
 import win32security
 import ntsecuritycon as con
-from os import listdir, path
+from os import listdir, path, getlogin
 
 
 def set_folder_permissions(folder_path, sid, permission_type):
@@ -26,4 +26,4 @@ def lock_folder(folder_path, username):
 
 
 for folder in [file for file in listdir() if path.isdir(file)]:
-    lock_folder(folder, 'Usuario')
+    lock_folder(folder, getlogin())
