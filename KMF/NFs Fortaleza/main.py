@@ -1,6 +1,5 @@
 from os import listdir, path, mkdir, rename, getcwd, remove
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.wait import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
@@ -49,7 +48,10 @@ def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10) -> No
     actions = ['click', 'write', 'clear']
     if action not in actions:
         raise TypeError(f'{action} must be in {actions}')
-    espera_aparecer(xpath)
+    try:
+        espera_aparecer(xpath)
+    except NoSuchElementException:
+        print(xpath)
     for try_i in range(n_tries):
         try:
             # Find the element
@@ -63,16 +65,12 @@ def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10) -> No
                 element.clear()
             return
         except NoSuchElementException:
-            if try_i == n_tries - 1:
-                raise Exception(f'Item com xpath {xpath} não encontrado')
             sleep(1)
         except ElementNotInteractableException:
-            if try_i == n_tries - 1:
-                raise Exception(f'Elemento com xpath {xpath} indisponível ou oculto.')
             sleep(1)
         except ElementClickInterceptedException:
-            if try_i == n_tries - 1:
-                raise Exception(f'Elemento com xpath {xpath} interceptado ou sobreposto.')
+            sleep(1)
+        except StaleElementReferenceException:
             sleep(1)
         except UnexpectedAlertPresentException:
             try:
@@ -161,8 +159,7 @@ def run():
     else:
         n_pags = 1
     for pag in range(n_pags):
-        sleep(2)
-        # Extrai os cnpjs a partir de uma tabela
+        sleep(3)        # Extrai os cnpjs a partir de uma tabela
         cnpjs = nav.find_element('xpath', '//*[@id="alteraInscricaoForm"]').text.split('\n')
         cnpjs = cnpjs[5::3]
 
@@ -229,7 +226,6 @@ def run():
 
     # Percorre cada página
     for pag in range(n_pags):
-        sleep(1)
         # Clica em '>' para avançar até a página correta
         for _ in range(pag):
             # Aguarda o fim da consulta
@@ -288,6 +284,7 @@ def run():
             dia_i = datetime(int(_[6:]), int(_[3:5]), int(_[:2]))
             # Verifica se acabaram as notas
             if dia_i > dia:
+                nav.quit()
                 renomeia_notas()
                 return
             # Verifica se a nota é do dia especificado
