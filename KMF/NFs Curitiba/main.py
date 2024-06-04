@@ -113,6 +113,7 @@ def run():
         interact('clear', '//*[@id="txtLogin"]')
         interact('write', '//*[@id="txtLogin"]', dados['LOGIN'])
         interact('write', '//*[@id="txtSenha"]', dados['SENHA'])
+        interact('write', '//*[@id="txtCodeTextBox"]', '')
         sleep(7)
         interact('click', '//*[@id="btnLogar"]')
         # Alternar para a nova janela
@@ -121,17 +122,27 @@ def run():
     wait.until(EC.frame_to_be_available_and_switch_to_it(('xpath', '//*[@id="fraMenu"]')))
     # Clica em 'NFS-e'
     interact('click', '//*[@id="td1_div5"]/b/span')
-
+    # Volta para o contexto do frame pai.
+    nav.switch_to.default_content()
+    wait.until(EC.frame_to_be_available_and_switch_to_it(('xpath', '//*[@id="fraMain"]')))
     wait.until(EC.frame_to_be_available_and_switch_to_it(('xpath', '//*[@id="iFrameMenu"]')))
     # Clica em 'Pesquisar NFS-e emitidas/Cancelar NFS-e'
     interact('click', '//*[@id="form1"]/div[2]/table/tbody/tr/td/div[3]/a')
-    # Clica em 'Pesquisar'
-    interact('click', '//*[@id="btnPesquisar"]')
+    # Volta para o contexto do frame pai.
+    nav.switch_to.default_content()
+    wait.until(EC.frame_to_be_available_and_switch_to_it(('xpath', '//*[@id="fraMain"]')))
+    wait.until(EC.frame_to_be_available_and_switch_to_it(('xpath', '//*[@id="ctl00_ContentPlaceHolder1_frmObras"]')))
     # Escolhe a competência desejada.
     Select(nav.find_element('xpath', '//*[@id="Mes"]')).select_by_visible_text(dados['Competencia'])
+    # Clica em 'Pesquisar'
+    interact('click', '//*[@id="btnPesquisar"]')
 
+    interact('click', '//*[@id="tblNfse"]/tbody/tr[1]/td[7]/button[1]')
+    # Clica em 'Imprimir'
+    botao = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn btn-success bootstrap4-dialog-button btn-block')))
+    botao.click()
     sleep(100)
 
 
-
 run()
+
