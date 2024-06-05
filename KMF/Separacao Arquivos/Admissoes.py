@@ -7,10 +7,12 @@ if not path.exists('Documentos'):
     mkdir('Documentos')
 
 for arq in [file for file in listdir() if '.pdf' in file]:
+    if not path.exists(f'Documentos\\{arq[:-4]}'):
+        mkdir(f'Documentos\\{arq[:-4]}')
     with open(arq, 'rb') as file:
         # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF.
         pdf_reader = PdfReader(file)
-
+        pag_ant = None
         # Para cada página, identifica o tipo de documento e o nome do funcionário.
         for pag in tqdm(pdf_reader.pages):
             rows = pag.extract_text().split('\n')
@@ -36,9 +38,15 @@ for arq in [file for file in listdir() if '.pdf' in file]:
                 # Remove espaços entre os nomes.
                 nome = ' '.join(nome.split())
             elif titulo == 'TERMO DE COMPROMISSO DE VALE-TRANSPORTE':
-                nome = rows[8]
+                for i, row in enumerate(rows):
+                    if 'SSPNome' in row:
+                        nome = rows[i+1]
+                        break
             elif titulo == 'TERMO COLETIVO DE CESSÃO GRATUITA DE USO DE IMAGEM PARA DIVULGAÇÃO':
-                nome = rows[30][11:]
+                for row in rows:
+                    if 'Empregado: ' in row:
+                        nome = row[11:]
+                        break
             elif titulo == 'REGISTRO DE EMPREGADONúmero:':
                 nome = rows[19][:-14]
             elif titulo == 'Termo de Responsabilidade':
@@ -50,12 +58,23 @@ for arq in [file for file in listdir() if '.pdf' in file]:
                 nome = ' '.join(nome.split())
             elif titulo[:20] == 'A Controladora fica ':
                 nome = rows[30]
+            elif titulo == 'AUTODECLARAÇÃO ÉTNICO-RACIAL':
+                nome = rows[13]
+            # No Termo LGPD não tem o nome, fica na página seguinte, que começa com '" CLÁUSULA QUARTA:'
+            # Então a página atual precisa ser guardada.
+            elif titulo == 'TERMO LGPD':
+                pag_ant = pag
+                continue
+            elif titulo == '" CLÁUSULA QUARTA: RESPONSABILIDADE PELA SEGURANÇA DOS DADOS.':
+                nome = rows[29]
+            elif titulo == '" CLÁUSULA QUINTA: TÉRMINO DO TRATAMENTO DOS DADOS.':
+                nome = rows[23]
             else:
-                print(f'Documento {titulo} não reconhecido!')
+                print(f'Documento {[titulo]} não reconhecido!')
                 input()
                 continue
 
-            file_name = f'Documentos\\{nome}.pdf'
+            file_name = f'Documentos\\{arq[:-4]}\\{nome}.pdf'
             pdf_writer = PdfWriter()
             # Verifica se já existe um arquivo para este funcionário
             if path.exists(file_name):
@@ -63,7 +82,9 @@ for arq in [file for file in listdir() if '.pdf' in file]:
                 # Copia todas as páginas do documento do funcionário para o writer
                 for page_num in range(len(pdf_reader_temp.pages)):
                     pdf_writer.add_page(pdf_reader_temp.pages[page_num])
-
+            # Verifica se é o documento Termo LGPD e adiciona a pagina anterior.
+            if titulo == '" CLÁUSULA QUARTA: RESPONSABILIDADE PELA SEGURANÇA DOS DADOS.':
+                pdf_writer.add_page(pag_ant)
             # Adiciona a página atual
             pdf_writer.add_page(pag)
             # Salva o arquivo
