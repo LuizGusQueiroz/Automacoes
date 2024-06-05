@@ -20,8 +20,9 @@ options.add_experimental_option("prefs", {
     "download.default_directory": dir,
     "download.prompt_for_download": False,
     "download.directory_upgrade": True,
-    "plugins.always_open_pdf_externally": True,
-    "profile.default_content_setting_values.automatic_downloads": 1
+    "plugins.always_open_pdf_externally": True,  # Baixar PDFs em vez de abri-los
+    "profile.default_content_settings.popups": 0,
+    "profile.content_settings.exceptions.automatic_downloads.*.setting": 1
 })
 nav = webdriver.Chrome(service=service, options=options)
 wait = WebDriverWait(nav, 30)
@@ -139,10 +140,11 @@ def run():
 
     interact('click', '//*[@id="tblNfse"]/tbody/tr[1]/td[7]/button[1]')
     # Clica em 'Imprimir'
-    botao = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn btn-success bootstrap4-dialog-button btn-block')))
-    botao.click()
+    interact('click', "//button[contains(@class, 'btn btn-success bootstrap4-dialog-button btn-block')]")
+    #print(nav.find_elements('xpath', "//button[contains(@class, 'btn btn-success bootstrap4-dialog-button btn-block')]"))
+    #botao = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn btn-success bootstrap4-dialog-button btn-block')))
+    #botao.click()
     sleep(100)
 
 
 run()
-
