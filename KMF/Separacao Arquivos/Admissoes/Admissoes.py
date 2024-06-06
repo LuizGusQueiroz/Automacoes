@@ -21,13 +21,15 @@ for arq in [file for file in listdir() if '.pdf' in file]:
             while not rows[idx].strip():
                 idx += 1
             titulo = rows[idx].strip()
+            # Remove espaços do títulos
+            titulo = ' '.join(titulo.split())
             # Acessa o nome com base no tipo de documento.
             if titulo == 'DECLARAÇÃO DE DEPENDENTES PARA FINS DE IMPOSTO DE RENDA':
                 nome = rows[2]
             elif titulo == 'TERMO LDPD':
                 row = rows[3]
                 nome = row[35:row.find(',', 35)].replace('_', '')
-            elif titulo == 'R E C I B O  D E  E N T R E G A  D A  C A R T E I R A  D E  T R A B A L H O':
+            elif titulo == 'R E C I B O D E E N T R E G A D A C A R T E I R A D E T R A B A L H O':
                 for row in rows:
                     if '(Carimbo e visto da empresa)' in row:
                         nome = row[28:-12]
@@ -53,7 +55,7 @@ for arq in [file for file in listdir() if '.pdf' in file]:
                 nome = rows[6][:-10]
             elif titulo == 'Contrato de Experiência de Trabalho':
                 row = rows[2]
-                nome = row[row.find(',')+1:row.find(' p', row.find(','))].strip()
+                nome = row[row.rfind(',')+1:row.find(' p', row.rfind(','))].strip()
                 # Remove espaços entre os nomes
                 nome = ' '.join(nome.split())
             elif titulo[:20] == 'A Controladora fica ':
@@ -65,6 +67,8 @@ for arq in [file for file in listdir() if '.pdf' in file]:
             elif titulo == 'TERMO LGPD':
                 pag_ant = pag
                 continue
+            elif titulo == '" CLÁUSULA TERCEIRA: COMPARTILHAMENTO DE DADOS.':
+                nome = rows[31]
             elif titulo == '" CLÁUSULA QUARTA: RESPONSABILIDADE PELA SEGURANÇA DOS DADOS.':
                 nome = rows[29]
             elif titulo == '" CLÁUSULA QUINTA: TÉRMINO DO TRATAMENTO DOS DADOS.':
