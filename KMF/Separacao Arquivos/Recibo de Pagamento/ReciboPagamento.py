@@ -27,8 +27,8 @@ for arq in files:
                 # Acessa a linha que contém o nome do empregado.
                 nome = rows[11]
                 # Acessa a linha que contém a lotação do empregado.
-                lotacao = rows[9][6:-5]
-                file_name = f'Recibos\\{lotacao}-{nome}.pdf'
+                lotacao = rows[9][:-5]
+                file_name = f'Recibos\\{lotacao}-{nome}.pdf'.replace('/', '')
                 pdf_writer = PdfWriter()
                 # Adiciona a página atual ao objeto PdfWriter
                 pdf_writer.add_page(pag)
@@ -40,9 +40,9 @@ for arq in files:
         elif escolha == '2':  # Separa por lotação
             for pag in tqdm(pdf_reader.pages):
                 rows = pag.extract_text().split('\n')
-                lotacao = rows[9][6:-5]
+                lotacao = rows[9][:-5]
 
-                file_name = f'Recibos\\{lotacao}.pdf'
+                file_name = f'Recibos\\{lotacao}.pdf'.replace('/', '')
                 pdf_writer = PdfWriter()
                 # Verifica se já existe um arquivo para esta lotação.
                 if path.exists(file_name):
