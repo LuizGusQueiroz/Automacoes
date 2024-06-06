@@ -10,6 +10,7 @@ from selenium import webdriver
 from PyPDF2 import PdfReader
 from zipfile import ZipFile
 from time import sleep
+import requests
 
 # Inicializa o navegador
 service = Service(ChromeDriverManager().install())
@@ -100,7 +101,46 @@ def run():
     interact('click', '//*[@id="menu-lateral"]/li[4]/a')
     # Escolhe a competência desejada.
     Select(nav.find_element('xpath', '//*[@id="ddlMes"]')).select_by_visible_text(dados['Competencia'])
+    # Clica em 'NFS-e Emitidas'
+    interact('click', '//*[@id="btEmitidas"]')
+    # Guarda a referência da janela principal
+    main_window = nav.current_window_handle
+    # Encontrar o identificador da nova janela aberta.
+    for window in nav.window_handles:
+        if window != main_window:
+            sec_window = window
+            nav.switch_to.window(sec_window)
+            break
 
+    # Acessa os dados da tabela de notas
+    notas = nav.find_element('xpath', '//*[@id="dgNotas"]').text.split('\n')[2:-1]
+    # Pega nota sim, nota não, pois as informações de cada nota estão divididas em duas linhas,
+    # mas a segunda linha não tem informações necessárias para esta aplicação.
+    notas = [nota for i, nota in enumerate(notas) if i % 2 == 0]
+    for i, row in enumerate(notas):
+        print([row])
+        interact('click', f'//*[@id="dgNotas"]/tbody/tr[{i+2}]/td[1]/a')
+        # É aberta uma tela na janela principal
+        # Encontrar o identificador da nova janela.
+        for window in nav.window_handles:
+            if window not in [main_window, sec_window]:
+                nav.switch_to.window(window)
+                break
+
+        img_element = WebDriverWait(nav, 10).until(
+            EC.presence_of_element_located(('xpath', '//*[@id="img"]'))
+        )
+        # Capturar o URL da imagem
+        img_url = img_element.get_attribute('src')
+        # Fazer o download da imagem usando requests
+        img_response = requests.get(img_url)
+        # Caminho para salvar a imagem
+        img_path = 'imagem.jpg'
+        # Escrever a imagem no arquivo
+        with open(img_path, 'wb') as file:
+            file.write(img_response.content)
+
+        break
 
 run()
 sleep(100)
