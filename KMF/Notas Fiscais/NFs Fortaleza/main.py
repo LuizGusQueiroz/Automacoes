@@ -10,6 +10,7 @@ from datetime import datetime
 from PyPDF2 import PdfReader
 from time import sleep
 
+
 dir = f'{getcwd()}\\notas'
 # Inicializa o navegador
 service = Service(ChromeDriverManager().install())
@@ -138,8 +139,9 @@ def run():
     # Verifica se está na página de Login
     while nav.find_elements('xpath', '//*[@id="botao-entrar"]'):
         # Preenche as informações de Login
-        interact('clear', '//*[@id="username"]')  # Limpa a senha atual
+        interact('clear', '//*[@id="username"]')  # Limpa o login atual
         interact('write', '//*[@id="username"]', dados['LOGIN'])
+        interact('clear', '//*[@id="password"]')  # Limpa a senha atual
         interact('write', '//*[@id="password"]', dados['SENHA'])
         # Clica em entrar
         interact('click', '//*[@id="botao-entrar"]', n_tries=20)
@@ -271,21 +273,29 @@ def run():
             -> Base de Cálculo: item.split()[-2]
             -> Impostos:        item.split()[-1]
         '''
-        items = nav.find_element('xpath', '//*[@id="id_dados_consulta"]').text.split('\n')[-10:]
+        if pag == n_pags-1:  # Na última página é necessário um tratamento especial
+            itens = nav.find_element('xpath', '//*[@id="id_dados_consulta"]').text.split('\n')
+            for i, item in enumerate(itens):
+                if item.startswith('««'):
+                    itens = itens[i + 1:]
+                    break
+        else:
+            itens = nav.find_element('xpath', '//*[@id="id_dados_consulta"]').text.split('\n')[-10:]
+
 
         # Por padrão, há 10 items por página
         # Verifica se há menos que 10
-        for i, item in enumerate(items, start=1):
+        for i, item in enumerate(itens, start=1):
             if '«« « ' in item:
-                n_items = 10 - i
-                items = items[:n_items]
+                n_itens = 10 - i
+                itens = itens[:n_itens]
                 break
 
         if comecou and pag > 0:
             # Clica em '««' para voltar para a primeira página
             interact('click', '//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
 
-        for i, item in enumerate(items):
+        for i, item in enumerate(itens):
             print(pag, item.split()[0], item.split()[2], item.split()[1], ' '.join(item.split()[4:-2]))
             _ = item.split()[0]
             dia_i = datetime(int(_[6:]), int(_[3:5]), int(_[:2]))
@@ -298,13 +308,14 @@ def run():
             # Verifica se a nota foi cancelada
             if item.split()[2] == 'CANCELADA':
                 continue
-            if pag != n_pags-1:
-                continue
+            # Usar isto para verificar download da última página
+            #if pag != n_pags-1:
+            #    continue
             if not comecou:
                 comecou = True
                 # Clica em '««' para voltar para a primeira página
                 interact('click', '//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
-
+            print('ok')
             # Verifica se a nota já foi baixada
             nome_emp = ' '.join(item.split()[4:-2])
             num_nf = item.split()[1]
