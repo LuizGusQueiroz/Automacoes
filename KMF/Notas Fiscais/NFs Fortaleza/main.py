@@ -308,14 +308,11 @@ def run():
             # Verifica se a nota foi cancelada
             if item.split()[2] == 'CANCELADA':
                 continue
-            # Usar isto para verificar download da última página
-            #if pag != n_pags-1:
-            #    continue
+
             if not comecou:
                 comecou = True
                 # Clica em '««' para voltar para a primeira página
                 interact('click', '//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
-            print('ok')
             # Verifica se a nota já foi baixada
             nome_emp = ' '.join(item.split()[4:-2])
             num_nf = item.split()[1]
