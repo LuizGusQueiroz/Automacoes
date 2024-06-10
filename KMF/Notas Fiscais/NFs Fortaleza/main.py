@@ -91,6 +91,7 @@ with open('config.txt', 'r') as file:
     dados = {chave: valor for chave, valor in dados}
     # Converte a data no modelo dd/mm/YYYY para uma variável do tipo datetime
     dia = datetime(int(dados['Data'][6:]), int(dados['Data'][3:5]), int(dados['Data'][:2]))
+    mes = dados['Data'][3:5]
 
 
 def escolhe_mes(mes: str) -> None:
@@ -102,29 +103,29 @@ def escolhe_mes(mes: str) -> None:
     wait.until(EC.element_to_be_clickable(('xpath',
                                            '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM0"]')))
     # Escolhe o mês correto:
-    if mes == 'jan':
+    if mes == '01':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM0"]')
-    elif mes == 'fev':
+    elif mes == '02':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM1"]')
-    elif mes == 'mar':
+    elif mes == '03':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM2"]')
-    elif mes == 'abr':
+    elif mes == '04':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM3"]')
-    elif mes == 'mai':
+    elif mes == '05':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM4"]')
-    elif mes == 'jun':
+    elif mes == '06':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM5"]')
-    elif mes == 'jul':
+    elif mes == '07':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM6"]')
-    elif mes == 'ago':
+    elif mes == '08':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM7"]')
-    elif mes == 'set':
+    elif mes == '09':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM8"]')
-    elif mes == 'out':
+    elif mes == '10':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM9"]')
-    elif mes == 'nov':
+    elif mes == '11':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM10"]')
-    elif mes == 'dez':
+    elif mes == '12':
         interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM11"]')
 
 
@@ -192,7 +193,7 @@ def run():
     interact('click', '//*[@id="consultarnfseForm:competencia_prestador_tab_lbl"]')
     # Aguarda o carregamento da página
     sleep(1)
-    escolhe_mes(dados['Competencia'])
+    escolhe_mes(mes)
     # clica em 'OK'
     interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorButtonOk"]/span')
     # Clica em 'Consultar'
@@ -301,6 +302,7 @@ def run():
             dia_i = datetime(int(_[6:]), int(_[3:5]), int(_[:2]))
             # Verifica se acabaram as notas
             if dia_i > dia:
+                nav.quit()
                 return
             # Verifica se a nota é do dia especificado
             if item.split()[0] != dados['Data']:
@@ -341,7 +343,7 @@ def run():
             # Aguarda o carregamento
             wait.until(
                 EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
-            escolhe_mes(dados['Competencia'])
+            escolhe_mes(mes)
             # clica em 'OK'
             interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorButtonOk"]/span')
             # Clica em 'Consultar'
@@ -356,6 +358,7 @@ def run():
                 EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
             # Clica em '««' para voltar para a primeira página
             interact('click', '//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
+    nav.quit()
 
 
 def renomeia_notas():
@@ -390,5 +393,4 @@ def renomeia_notas():
 
 
 run()
-nav.quit()
 renomeia_notas()
