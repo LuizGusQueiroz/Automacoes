@@ -73,11 +73,11 @@ while not nav.find_elements('xpath', '/html/body/div/div[3]/div/h2'):
     sleep(1)
 
 # Clica em 'Entra no Sistema'
-try:
-    clica('/html/body/div/div[3]/div/p[3]/a')
-except NoSuchElementException:
+#try:
+#    clica('/html/body/div/div[3]/div/p[3]/a')
+#except NoSuchElementException:
     # O botão não existe, não é necessário fazer nada
-    pass
+#    pass
 
 espera_aparecer('//*[@id="DataTables_Table_0_wrapper"]')
 '''
@@ -153,10 +153,7 @@ for _ in range(200):
         print(e)
         break
 
-# Verifica se existe a pasta de destino das notas
-if not path.exists('empresas'):
-    # Cria a pasta
-    mkdir('empresas')
+
 # Lê cada pdf, encontra a razão social e o move para sua pasta
 notas = [nota for nota in listdir('notas') if '.pdf' in nota]
 for nota in notas:
@@ -173,16 +170,16 @@ for nota in notas:
     condominio = pags[18][18:]
     num_nf = pags[4].split()[0]
     # Verifica se ja há uma pasta para esta empresa
-    if not path.exists(f'empresas/{empresa}'):
-        mkdir(f'empresas/{empresa}')
+    if not path.exists(f'notas/{empresa}'):
+        mkdir(f'notas/{empresa}')
     # Verifica se o arquivo já existe na pasta.
-    if not path.exists(f'empresas/{empresa}/{condominio}-{num_nf}.pdf'):
+    if not path.exists(f'notas/{empresa}/{condominio}-{num_nf}.pdf'):
         # Move o arquivo para a nova pasta
-        rename(arq, f'empresas/{empresa}/{condominio}-{num_nf}.pdf')
+        rename(arq, f'notas/{empresa}/{condominio}-{num_nf}.pdf')
 # Apaga o arquivo zip
 remove(fr'{getcwd()}\NFE_{dados["Inscricao"]}.zip')
-# Apaga os arquivos
-files = [fr'notas\{file}' for file in listdir('notas')]
+# Apaga os arquivos remanescentes
+files = [fr'notas\{file}' for file in listdir('notas') if not path.isdir(f'notas\\{file}')]
 for file in files:
     remove(file)
 # Fecha o navegador
