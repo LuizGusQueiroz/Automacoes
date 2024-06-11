@@ -109,21 +109,25 @@ def run():
     # Clica em 'Filtrar'.
     interact('click', '//*[@id="nota_fiscal_search"]/div[2]/input')
     # Verifica quantas páginas existem
-    n_pags = int(nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav').text.split('\n')[-2])
+    if nav.find_elements('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav'):
+        n_pags = int(nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav').text.split('\n')[-2])
+    else:
+        n_pags = 1
     # Indicador do fim das notas
     acabou = False
     # Percorre todas as páginas
     for pag in range(n_pags):
-        # Guarda o botão de próxima página.
-        next_page = nav.find_element(By.CSS_SELECTOR,
-        'body > div.wrapper > section > div > div.card.card-default > div > div > nav > ul > li.next.next_page.page-item > a')
+        if n_pags > 1:
+            # Guarda o botão de próxima página.
+            next_page = nav.find_element(By.CSS_SELECTOR,
+            'body > div.wrapper > section > div > div.card.card-default > div > div > nav > ul > li.next.next_page.page-item > a')
         # Conta quantas notas há na tabela
-        table = nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div').text.split('\n')
+        table = nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div').text.split('\n')[1:]
         for i, row in enumerate(table):
             if row == '<':
-                table = table[1:i]
-                n_notas = int(len(table) / 3)
+                table = table[:i]
                 break
+        n_notas = int(len(table) / 3)
         # Percorre todas as notas
         for idx in range(1, n_notas+1):
             # Verifica se a data é a mesma
