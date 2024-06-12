@@ -12,7 +12,6 @@ for arq in [file for file in listdir() if '.pdf' in file]:
     with open(arq, 'rb') as file:
         # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF.
         pdf_reader = PdfReader(file)
-        pag_ant = None
         # Para cada página, identifica o tipo de documento e o nome do funcionário.
         for pag in tqdm(pdf_reader.pages):
             rows = pag.extract_text().split('\n')
@@ -65,8 +64,8 @@ for arq in [file for file in listdir() if '.pdf' in file]:
             # No Termo LGPD não tem o nome, fica na página seguinte, que começa com '" CLÁUSULA QUARTA:'
             # Então a página atual precisa ser guardada.
             elif titulo == 'TERMO LGPD':
-                pag_ant = pag
-                continue
+                row = rows[3]
+                nome = row[row.find(', eu')+4:row.find(',', row.find(', eu')+1)].strip()
             elif titulo == '" CLÁUSULA TERCEIRA: COMPARTILHAMENTO DE DADOS.':
                 nome = rows[31]
             elif titulo == '" CLÁUSULA QUARTA: RESPONSABILIDADE PELA SEGURANÇA DOS DADOS.':
@@ -86,9 +85,6 @@ for arq in [file for file in listdir() if '.pdf' in file]:
                 # Copia todas as páginas do documento do funcionário para o writer
                 for page_num in range(len(pdf_reader_temp.pages)):
                     pdf_writer.add_page(pdf_reader_temp.pages[page_num])
-            # Verifica se é o documento Termo LGPD e adiciona a pagina anterior.
-            if titulo == '" CLÁUSULA QUARTA: RESPONSABILIDADE PELA SEGURANÇA DOS DADOS.':
-                pdf_writer.add_page(pag_ant)
             # Adiciona a página atual
             pdf_writer.add_page(pag)
             # Salva o arquivo
