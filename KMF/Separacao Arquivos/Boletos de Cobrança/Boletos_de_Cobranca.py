@@ -1,5 +1,6 @@
 from os import listdir, path, mkdir
 from PyPDF2 import PdfReader, PdfWriter
+from tqdm import tqdm
 
 # Cria a pasta de destino dos recibos
 if not path.exists('Boletos'):
@@ -11,7 +12,7 @@ for arq in [file for file in listdir() if '.pdf' in file]:
         pdf_reader = PdfReader(file)
 
         # Itera sobre todas as páginas do PDF
-        for page_pdf in pdf_reader.pages:
+        for page_pdf in tqdm(pdf_reader.pages):
             page = page_pdf.extract_text().split('\n')
 
             for row in page:
@@ -21,10 +22,11 @@ for arq in [file for file in listdir() if '.pdf' in file]:
             for row in page:
                 if 'Boleto referente:' in row:
                     numero = row[row.find(':')+1:row.find('/', row.find(' '))]
+                    if len(numero) > 20:
+                        numero = row[row.rfind(' ')+1:row.rfind('/')]
                     break
 
             nome_arq = f'{condominio}-{numero}.pdf'
-
             pdf_writer = PdfWriter()
             # Adiciona a página atual ao objeto PdfWriter
             pdf_writer.add_page(page_pdf)
