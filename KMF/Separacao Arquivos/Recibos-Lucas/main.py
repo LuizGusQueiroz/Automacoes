@@ -8,7 +8,7 @@ if not path.exists('Planilhas'):
     mkdir('Planilhas')
 
 for arq in [file for file in listdir() if '.pdf' in file]:
-    df = pd.DataFrame(columns=['Contrato', 'Empregado', 'Total'])
+    df = pd.DataFrame(columns=['Empregado', 'Total'])
     with open(arq, 'rb') as file:
         # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF.
         pdf_reader = PdfReader(file)
@@ -17,7 +17,6 @@ for arq in [file for file in listdir() if '.pdf' in file]:
         for pag in tqdm(pdf_reader.pages):
 
             rows = pag.extract_text().split('\n')
-            contrato = rows[3]
             for i, row in enumerate(rows):
                 # Acessa o nome do contrato e do empregado.
                 if row == 'Total':
@@ -32,11 +31,6 @@ for arq in [file for file in listdir() if '.pdf' in file]:
                 if achou and row.startswith(' '):
                     achou = False
                     total = row.split()[0]
-                    if 'Apoio' in contrato:
-                        df.loc[len(df)] = [contrato, nome, total]
+                    df.loc[len(df)] = [nome, total]
     df.to_excel(f'Planilhas\\{arq.replace('.pdf', '.xlsx')}', index=False)
-
-
-
-
 
