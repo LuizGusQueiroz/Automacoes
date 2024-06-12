@@ -152,40 +152,42 @@ def run():
     # Clica em 'Fazer Login'
     interact('click', '//*[@id="login"]/div[1]/div[2]/a[1]')
     sleep(2)
-    # Conta quantas páginas de CNPJ existem
-    if nav.find_elements('xpath', '//*[@id="alteraInscricaoForm:empresaDataTable:j_id383_table"]'):
-        try:
-            n_pags = int(nav.find_element(
-                'xpath', '//*[@id="alteraInscricaoForm:empresaDataTable:j_id383_table"]').text.split()[-2])
-        except:
-            n_pags = 10
-    else:
-        n_pags = 1
-    for pag in range(n_pags):
-        sleep(3)        # Extrai os cnpjs a partir de uma tabela
-        cnpjs = nav.find_element('xpath', '//*[@id="alteraInscricaoForm"]').text.split('\n')
-        cnpjs = cnpjs[5::3]
+    # Verifica se a tabela de CNPJ existe.
+    if nav.find_elements('xpath', '//*[@id="alteraInscricaoForm:empresaDataTable"]'):
+        # Conta quantas páginas de CNPJ existem
+        if nav.find_elements('xpath', '//*[@id="alteraInscricaoForm:empresaDataTable:j_id383_table"]'):
+            try:
+                n_pags = int(nav.find_element(
+                    'xpath', '//*[@id="alteraInscricaoForm:empresaDataTable:j_id383_table"]').text.split()[-2])
+            except:
+                n_pags = 10
+        else:
+            n_pags = 1
+        for pag in range(n_pags):
+            sleep(3)        # Extrai os cnpjs a partir de uma tabela
+            cnpjs = nav.find_element('xpath', '//*[@id="alteraInscricaoForm"]').text.split('\n')
+            cnpjs = cnpjs[5::3]
 
-        achou = False
-        for i, cnpj in enumerate(cnpjs):
-            cnpj_num = ''.join([c for c in cnpj if c.isnumeric()])
+            achou = False
+            for i, cnpj in enumerate(cnpjs):
+                cnpj_num = ''.join([c for c in cnpj if c.isnumeric()])
 
-            if cnpj == dados['CNPJ'] or cnpj_num == dados['CNPJ']:
-                achou = True
-                interact('click', f'//*[@id="alteraInscricaoForm:empresaDataTable:{10 * pag + i}:linkDocumento"]')
-                # Aguarda o carregamento da página
-                sleep(0.5)
+                if cnpj == dados['CNPJ'] or cnpj_num == dados['CNPJ']:
+                    achou = True
+                    interact('click', f'//*[@id="alteraInscricaoForm:empresaDataTable:{10 * pag + i}:linkDocumento"]')
+                    # Aguarda o carregamento da página
+                    sleep(0.5)
+                    break
+            if achou:
                 break
-        if achou:
-            break
-        # Avança para a próxima página
-        if pag != n_pags - 1:
-            interact('click', f'//*[@id="alteraInscricaoForm:empresaDataTable:j_id383_table"]/tbody/tr/td[{5 + pag}]')
+            # Avança para a próxima página
+            if pag != n_pags - 1:
+                interact('click', f'//*[@id="alteraInscricaoForm:empresaDataTable:j_id383_table"]/tbody/tr/td[{5 + pag}]')
 
-    if not achou:
-        print(f'CNPJ {dados['CNPJ']} não encontrado!')
-        input()
-        return
+        if not achou:
+            print(f'CNPJ {dados['CNPJ']} não encontrado!')
+            input()
+            return
 
     # Clica em 'Consultar NFS-e'
     interact('click', '//*[@id="homeForm:divHotLinks"]/div[4]')
@@ -385,9 +387,9 @@ def renomeia_notas():
         if not path.exists(f'notas/{empresa}'):
             mkdir(f'notas/{empresa}')
         # Verifica se o arquivo já existe na pasta.
-        if not path.exists(f'notas/{empresa}/{nome}-{num_nf}.pdf'):
+        if not path.exists(f'notas/{empresa}/NF {num_nf} - {nome}.pdf'):
             # Move o arquivo para a nova pasta
-            rename(arq, f'notas/{empresa}/{nome}-{num_nf}.pdf')
+            rename(arq, f'notas/{empresa}/NF {num_nf} - {nome}.pdf')
         else:
             remove(arq)
 
