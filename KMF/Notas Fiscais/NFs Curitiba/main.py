@@ -11,6 +11,8 @@ from selenium import webdriver
 from datetime import datetime
 from PyPDF2 import PdfReader
 from time import sleep
+import requests
+import base64
 
 dir = f'{getcwd()}\\notas'
 # Inicializa o navegador
@@ -67,13 +69,8 @@ def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10) -> No
             elif action == 'clear':
                 element.clear()
             return
-        except NoSuchElementException:
-            sleep(1)
-        except ElementNotInteractableException:
-            sleep(1)
-        except ElementClickInterceptedException:
-            sleep(1)
-        except StaleElementReferenceException:
+        except (NoSuchElementException or ElementNotInteractableException or
+                ElementClickInterceptedException or StaleElementReferenceException):
             sleep(1)
         except UnexpectedAlertPresentException:
             try:
@@ -107,7 +104,8 @@ def run():
     # Encontrar o identificador da nova janela.
     for window in nav.window_handles:
         if window != main_window:
-            nav.switch_to.window(window)
+            sec_window = window
+            nav.switch_to.window(sec_window)
             break
 
     while nav.find_elements('xpath', '//*[@id="btnLogar"]'):
@@ -138,13 +136,96 @@ def run():
     # Clica em 'Pesquisar'
     interact('click', '//*[@id="btnPesquisar"]')
 
+    # Clica no símbolo da nota
     interact('click', '//*[@id="tblNfse"]/tbody/tr[1]/td[7]/button[1]')
     # Clica em 'Imprimir'
     interact('click', "//button[contains(@class, 'btn btn-success bootstrap4-dialog-button btn-block')]")
+
+    while len(nav.window_handles) == 2:
+        sleep(0.5)
+    for window in nav.window_handles:
+        if window not in [main_window, sec_window]:
+            nav.switch_to.window(window)
+            break
+    sleep(3)
+
+    script = """
+    function getXPath(element) {
+        if (element.id !== '') {
+            return 'id("' + element.id + '")';
+        }
+        if (element === document.body) {
+            return element.tagName;
+        }
+        var ix = 0;
+        var siblings = element.parentNode.childNodes;
+        for (var i = 0; i < siblings.length; i++) {
+            var sibling = siblings[i];
+            if (sibling === element) {
+                return getXPath(element.parentNode) + '/' + element.tagName + '[' + (ix + 1) + ']';
+            }
+            if (sibling.nodeType === 1 && sibling.tagName === element.tagName) {
+                ix++;
+            }
+        }
+        return getXPath(element.parentNode) + '/' + element.tagName + '[1]';
+    }
+
+    var elements = document.querySelectorAll('*');
+    var results = [];
+    elements.forEach(function(element) {
+        var xpath = getXPath(element);
+        var className = element.className;
+        results.push({ 'xpath': xpath, 'class': className });
+    });
+    return results;
+    """
+
+    # Executa o script no contexto da página
+    elements_data = nav.execute_script(script)
+
+    # Exibe os resultados
+    for element in elements_data:
+        print(f"Class: {element['class']}, XPath: {element['xpath']}")
+
+    #interact('click', "//button[contains(@class, 'action-button')]")
+    #Select(nav.find_element('xpath', '//*[@id="destinationSelect"]//print-preview-settings-section/div/select')
+    #       ).select_by_visible_text(dados['Save as PDF'])
+    #sAVVE AS pdf
+    #//*[@id="destinationSelect"]//print-preview-settings-section/div/select
+    #<option value="Save as PDF/local/">
+    #   Save as PDF
+    # </option>
+
+
+
+
+
+
+    # Baixa a nota como imagem
+    #img_element = WebDriverWait(nav, 10).until(
+    #    EC.presence_of_element_located(('xpath', '//*[@id="Impressao"]')))
+    # Capturar o URL da imagem (base64)
+    #img_url = img_element.get_attribute('src')
+
+    # Remover o prefixo "data:image/png;base64," da URL base64
+    #img_base64 = img_url.split(',')[1]
+
+    # Decodificar o conteúdo base64
+    #img_data = base64.b64decode(img_base64)
+
+    # Caminho para salvar a imagem
+    #img_path = 'imagem.png'
+
+    # Escrever a imagem no arquivo
+    #with open(img_path, 'wb') as file:
+    #    file.write(img_data)
+    # Clica em 'Imprimir'
+    #interact('click', "//button[contains(@class, 'btn btn-success bootstrap4-dialog-button btn-block')]")
     #print(nav.find_elements('xpath', "//button[contains(@class, 'btn btn-success bootstrap4-dialog-button btn-block')]"))
     #botao = wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'btn btn-success bootstrap4-dialog-button btn-block')))
     #botao.click()
     sleep(100)
 
-
+    # //*[@id="Impressao"]
 run()
