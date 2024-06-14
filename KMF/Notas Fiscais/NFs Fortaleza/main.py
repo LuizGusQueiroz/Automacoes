@@ -69,9 +69,9 @@ def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10) -> No
             sleep(1)
         except ElementNotInteractableException:
             sleep(1)
-        except ElementClickInterceptedException:
-            sleep(1)
         except StaleElementReferenceException:
+            sleep(1)
+        except ElementClickInterceptedException:
             sleep(1)
         except UnexpectedAlertPresentException:
             try:
@@ -79,6 +79,22 @@ def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10) -> No
                 alert.dismiss()  # Recusa o alerta
             except NoAlertPresentException:
                 pass
+
+
+def get_modelo_nome(opcao: str) -> str:
+    modelos = {
+        '1': '{nome} - {num_nf}.pdf',
+        '2': 'NF {num_nf} - {nome}.pdf',
+        '3': '{nome} - {num_nf} desp nf.pdf'
+    }
+    modelo = modelos.get(opcao, None)
+    if modelo is None:
+        print(f'O Modelo deve estar entre os seguintes: {list(modelos.keys())}.')
+        input()
+        raise TypeError()
+    else:
+        return modelo
+
 
 
 # Lê as credenciais de acesso
@@ -103,30 +119,7 @@ def escolhe_mes(mes: str) -> None:
     wait.until(EC.element_to_be_clickable(('xpath',
                                            '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM0"]')))
     # Escolhe o mês correto:
-    if mes == '01':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM0"]')
-    elif mes == '02':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM1"]')
-    elif mes == '03':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM2"]')
-    elif mes == '04':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM3"]')
-    elif mes == '05':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM4"]')
-    elif mes == '06':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM5"]')
-    elif mes == '07':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM6"]')
-    elif mes == '08':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM7"]')
-    elif mes == '09':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM8"]')
-    elif mes == '10':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM9"]')
-    elif mes == '11':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM10"]')
-    elif mes == '12':
-        interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorLayoutM11"]')
+    interact('click', f'//*[@id="consultarnfseForm:competenciaDateEditorLayoutM{int(mes)-1}"]')
 
 
 def run():
@@ -364,6 +357,8 @@ def run():
 
 
 def renomeia_notas():
+    modelo = get_modelo_nome(dados['Modelo_Nome'])
+
     notas = [nota for nota in listdir('notas') if '.pdf' in nota]
     for nota in notas:
         arq = f'notas/{nota}'
@@ -383,13 +378,14 @@ def renomeia_notas():
             if 'E-mail' in row:
                 empresa = row[row.rfind('E-mail') + 6:]
                 break
+        nome_nota = modelo.format(num_nf=num_nf, nome=nome)
         # Verifica se ja há uma pasta para esta empresa
         if not path.exists(f'notas/{empresa}'):
             mkdir(f'notas/{empresa}')
         # Verifica se o arquivo já existe na pasta.
-        if not path.exists(f'notas/{empresa}/NF {num_nf} - {nome}.pdf'):
+        if not path.exists(f'notas/{empresa}/{nome_nota}'):
             # Move o arquivo para a nova pasta
-            rename(arq, f'notas/{empresa}/NF {num_nf} - {nome}.pdf')
+            rename(arq, f'notas/{empresa}/{nome_nota}')
         else:
             remove(arq)
 
