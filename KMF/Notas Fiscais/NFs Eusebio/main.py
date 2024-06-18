@@ -172,7 +172,10 @@ def main():
             # Verifica se o arquivo já existe na pasta.
             if not path.exists(f'notas/{empresa}/{condominio} - {num_nf} adm.pdf'):
                 # Move o arquivo para a nova pasta
-                rename(nota, f'notas/{empresa}/{condominio} - {num_nf} adm nf.pdf')
+                try:
+                    rename(nota, f'notas/{empresa}/{condominio} - {num_nf} adm nf.pdf')
+                except FileExistsError:
+                    remove(nota)
             else: # Apaga a nota
                 remove(nota)
 
@@ -189,4 +192,3 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         print(e)
-        input()
