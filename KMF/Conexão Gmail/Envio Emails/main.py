@@ -6,11 +6,53 @@ fornecida pelo google deverá ser utilizada nesta conexão.
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from os import path, listdir
+from os import path, listdir, mkdir, rename
 from PyPDF2 import PdfReader
 import pandas as pd
 import smtplib
 import sys
+
+
+def get_tabela_clientes() -> pd.DataFrame:
+    """
+    Encontra a tabela de clientes, comparando as colunas da tabela com
+    o modelo definido ['CNPJ', 'CLIENTE', 'EMAIL'].
+    """
+    files = [file for file in listdir() if '.xls' in file]
+    for file in files:
+        df = pd.read_excel(file)
+        if set(df.columns) == {'CNPJ', 'CLIENTE', 'EMAIL'}:
+            return df
+    print('Tabela de clientes não encontrada!')
+    input()
+    sys.exit()
+
+
+def renomeia_pdfs(tipo: str) -> set[int]:
+    cnpjs = set()
+    arqs = [f'{tipo}/{arq}' for arq in listdir(tipo)]
+    for arq in arqs:
+        with open(arq, 'rb') as file:
+            # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
+            arq_pdf = PdfReader(file)
+            # Cada arquivo tem apenas uma página, então apenas a primeira página precisa ser consider
+            rows = arq_pdf.pages[0].extract_text().split('\n')
+        if tipo == 'Boletos':
+            cnpj = rows[14].split()[-1]
+            # Remove os símbolos '.', '/' e '-' do CNPJ.
+            cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
+            rename(arq, f'{tipo}/{cnpj}.pdf')
+        elif tipo == 'Notas':
+            num_nf = rows[4]
+            for row in rows:
+                if 'Retenções Federais' in row:
+                    cnpj = row.split()[-1][-18:]
+                    break
+            # Remove os símbolos '.', '/' e '-' do CNPJ.
+            cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
+            rename(arq, f'{tipo}/{cnpj}-{num_nf}.pdf')
+        cnpjs.add(cnpj)
+    return cnpjs
 
 
 def get_creds() -> (str, str):
@@ -68,7 +110,6 @@ def read_boleto(path: str, clientes: pd.DataFrame) -> (str, str):
 
 
 def main():
-
     template = '''
     <html>
       <body>
@@ -77,7 +118,17 @@ def main():
       </body>
     </html>
     '''
-    clientes = pd.read_excel('Clientes.xlsx')
+    # Cria as pastas de origem dos arquivos.
+    if not path.exists('Boletos'):
+        mkdir('Boletos')
+    if not path.exists('Notas'):
+        mkdir('Notas')
+
+    cnpjs_bol = renomeia_pdfs('Boletos')
+    cnpjs_not = renomeia_pdfs('Notas')
+    cnpjs = cnpjs_bol | cnpjs_not
+
+    clientes = get_tabela_clientes()
     email, senha = get_creds()
     conn = start_conn(email, senha)
 
