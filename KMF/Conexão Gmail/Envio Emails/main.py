@@ -92,13 +92,20 @@ def read_boleto(path: str, clientes: pd.DataFrame) -> (str, str):
     Recebe um caminho de um boleto no formato PDF e acessa o nome do cliente e o seu CNPJ.
     Pela tabela clientes, é encontrado os destinatários com base no CNPJ encontrado.
     """
+    tipo: str = path[:path.find('/')]
     with open(path, 'rb') as file:
         # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
         boleto = PdfReader(file)
         # Cada boleto tem apenas uma página, então apenas a primeira página precisa ser considerada
-        rows = boleto.pages[0].extract_text().split('\n')
-    # Acessa o CNPF e remove os símbolos '.', '/' e '-'.
-    cnpj = rows[14].split()[-1]
+        rows: list[str] = boleto.pages[0].extract_text().split('\n')
+    # Acessa o CNPJ e remove os símbolos '.', '/' e '-'.
+    if tipo == 'Boletos':
+        cnpj = rows[14].split()[-1]
+    elif tipo == 'Notas':
+        for row in rows:
+            if 'Retenções Federais' in row:
+                cnpj = row.split()[-1][-18:]
+                break
     cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
 
     cliente = clientes['CLIENTE'][clientes['CNPJ'] == cnpj].values[0]
@@ -132,30 +139,37 @@ def main():
     email, senha = get_creds()
     conn = start_conn(email, senha)
 
-    files = [f'Boletos/{file}' for file in listdir('Boletos') if '.pdf' in file]
-    for arq in files:
-        cliente, destinatarios = read_boleto(arq, clientes)
-        destinatarios = 'luizgus@alu.ufc.br'
+    for cnpj in cnpjs:
+        files = [f'Boletos/{file}' for file in listdir('Boletos') if str(cnpj) in file] + \
+                [f'Notas/{file}' for file in listdir('Notas') if str(cnpj) in file]
+        try:
+            cliente, destinatarios = read_boleto(files[0], clientes)
+        except IndexError:
+            print(f'CNPJ não encontrado: {[cnpj]}')
+            continue
+
         # Cria a mensagem.
         msg = MIMEMultipart()
         msg['From'] = email # Quem envia
-        msg['To'] = 'luizgus@alu.ufc.br' #destinatarios
-        msg['Subject'] = 'Boletos' # Assunto do E-mail
-        # Ajusta o corpo da mensagem com base no template
+        msg['To'] = destinatarios
+        msg['Subject'] = 'Boletos'  # Assunto do E-mail
+        # Ajusta o corpo da mensagem com base no template.
         msg_html = template.format(cliente=cliente)
         # Anexar o conteúdo HTML ao email
         msg.attach(MIMEText(msg_html, 'html'))
 
-        # Anexa o PDF.
-        with open(arq, 'rb') as file:
-            pdf = MIMEApplication(file.read(), _subtype='pdf')
-            pdf.add_header('Content-Disposition', 'attachment', filename=path.basename(arq))
-            msg.attach(pdf)
+        # Anexa os PDFs.
+        for arq in files:
+            with open(arq, 'rb') as file:
+                pdf = MIMEApplication(file.read(), _subtype='pdf')
+                pdf.add_header('Content-Disposition', 'attachment', filename=path.basename(arq))
+                msg.attach(pdf)
         # Envia o e-mail.
         conn.sendmail(email, destinatarios, msg.as_string())
-        print(f'{arq[8:]} enviado para os emails: {destinatarios}')
+        print(f'{files} enviado para os emails: {destinatarios}')
     # Encerra a conexão
     conn.quit()
+    input('-----Fim-----')
 
 
 if __name__ == '__main__':
@@ -163,5 +177,7 @@ if __name__ == '__main__':
         main()
     except smtplib.SMTPAuthenticationError:
         print('Login ou Email inválido!')
+    except Exception as e:
+        print(e)
+    finally:
         input()
-
