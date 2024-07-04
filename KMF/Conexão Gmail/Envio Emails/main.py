@@ -109,9 +109,9 @@ def read_boleto(path: str, clientes: pd.DataFrame) -> (str, str):
     cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
 
     cliente = clientes['CLIENTE'][clientes['CNPJ'] == cnpj].values[0]
-    destinatarios = clientes['EMAIL'][clientes['CNPJ'] == cnpj].values[0]
-    # Deixa os emails no formato 'email1@gmail.com, email2@gmail.com, email3@gmail.com'.
-    destinatarios = ', '.join([email for email in destinatarios.split(' ') if email])  # Remove itens em branco
+    destinatarios = clientes['EMAIL'][clientes['CNPJ'] == cnpj].values[0].replace(',', '').split()
+
+    destinatarios = [email for email in destinatarios if email]  # Remove itens em branco
 
     return cliente, destinatarios
 
@@ -148,25 +148,38 @@ def main():
             print(f'CNPJ não encontrado: {[cnpj]}')
             continue
 
-        # Cria a mensagem.
-        msg = MIMEMultipart()
-        msg['From'] = email # Quem envia
-        msg['To'] = destinatarios
-        msg['Subject'] = 'Boletos'  # Assunto do E-mail
-        # Ajusta o corpo da mensagem com base no template.
-        msg_html = template.format(cliente=cliente)
-        # Anexar o conteúdo HTML ao email
-        msg.attach(MIMEText(msg_html, 'html'))
+        # Verifica se há apenas a nota sem boleto, caso seja este caso, a nota não é enviada.
+        tem_boleto = False
+        for file in files:
+            if 'Boleto' in file:
+                tem_boleto = True
+                break
+        if not tem_boleto:
+            print(f'Há apenas o boleto para {[cnpj]}')
+            continue
 
-        # Anexa os PDFs.
-        for arq in files:
-            with open(arq, 'rb') as file:
-                pdf = MIMEApplication(file.read(), _subtype='pdf')
-                pdf.add_header('Content-Disposition', 'attachment', filename=path.basename(arq))
-                msg.attach(pdf)
-        # Envia o e-mail.
-        conn.sendmail(email, destinatarios, msg.as_string())
-        print(f'{files} enviado para os emails: {destinatarios}')
+        # Mandas a mensagem para cada destinatário:
+        for destinatario in destinatarios:
+            # Cria a mensagem.
+            msg = MIMEMultipart()
+            msg['From'] = email # Quem envia
+            msg['To'] = destinatario
+            msg['Subject'] = 'Boletos'  # Assunto do E-mail
+            # Ajusta o corpo da mensagem com base no template.
+            msg_html = template.format(cliente=cliente)
+            # Anexar o conteúdo HTML ao email
+            msg.attach(MIMEText(msg_html, 'html'))
+
+            # Anexa os PDFs.
+            for arq in files:
+                with open(arq, 'rb') as file:
+                    pdf = MIMEApplication(file.read(), _subtype='pdf')
+                    pdf.add_header('Content-Disposition', 'attachment', filename=path.basename(arq))
+                    msg.attach(pdf)
+            # Envia o e-mail.
+            conn.sendmail(email, destinatarios, msg.as_string())
+            print(f'{files} enviado para o email: {destinatario}')
+
     # Encerra a conexão
     conn.quit()
     input('-----Fim-----')
