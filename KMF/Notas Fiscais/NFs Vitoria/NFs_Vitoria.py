@@ -36,13 +36,13 @@ def espera_aparecer(xpath: str, n: int = 20) -> None:
     raise NoSuchElementException(f'{xpath} não encontrado em {n} segundos de espera')
 
 
-def clica(xpath: str) -> None:
+def clica(xpath: str, n:int = 20) -> None:
     """
     Clica em determinado elemento na tela.
     Primeiro chama a função 'espera_aparecer' para não causar erro de Not Found.
     :param xpath: Uma string com o xpath do elemento que se deseja esperar aperecer.
     """
-    espera_aparecer(xpath)
+    espera_aparecer(xpath, n=n)
     try:
         nav.find_element('xpath', xpath).click()
         return
@@ -73,11 +73,17 @@ while not nav.find_elements('xpath', '/html/body/div/div[3]/div/h2'):
     sleep(1)
 
 # Clica em 'Entra no Sistema'
-#try:
-#    clica('/html/body/div/div[3]/div/p[3]/a')
-#except NoSuchElementException:
+try:
+    clica('/html/body/div/div[3]/div/p[3]/a', n=5)
+except NoSuchElementException:
     # O botão não existe, não é necessário fazer nada
-#    pass
+    pass
+# Clica em 'Acessar o sistema'
+try:
+    clica('/html/body/div/div[3]/div/p[8]/a', n=5)
+except NoSuchElementException:
+    # O botão não existe, não é necessário fazer nada
+    pass
 
 espera_aparecer('//*[@id="DataTables_Table_0_wrapper"]')
 '''
