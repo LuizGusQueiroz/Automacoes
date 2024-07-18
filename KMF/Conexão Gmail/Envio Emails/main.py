@@ -38,7 +38,13 @@ def renomeia_pdfs(tipo: str) -> set[int]:
             # Cada arquivo tem apenas uma página, então apenas a primeira página precisa ser consider
             rows = arq_pdf.pages[0].extract_text().split('\n')
         if tipo == 'Boletos':
-            cnpj = rows[14].split()[-1]
+            if rows[0] ==
+                cnpj = rows[14].split()[-1]
+            elif rows[0] == 'Beneficiário CPF/CNPJ':
+                cnpj = rows[10].split()[-1]
+            else:
+                input(f'Erro em {arq}')
+                sys.exit()
             # Remove os símbolos '.', '/' e '-' do CNPJ.
             cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
             rename(arq, f'{tipo}/{cnpj}.pdf')
@@ -100,7 +106,13 @@ def read_boleto(path: str, clientes: pd.DataFrame) -> (str, str):
         rows: list[str] = boleto.pages[0].extract_text().split('\n')
     # Acessa o CNPJ e remove os símbolos '.', '/' e '-'.
     if tipo == 'Boletos':
-        cnpj = rows[14].split()[-1]
+        if rows[0] == 'Endereço do Beneficiário ':
+            cnpj = rows[14].split()[-1]
+        elif rows[0] == 'Beneficiário CPF/CNPJ':
+            cnpj = rows[10].split()[-1]
+        else:
+            input(f'Erro em {path}')
+            sys.exit()
     elif tipo == 'Notas':
         for row in rows:
             if 'Retenções Federais' in row:
