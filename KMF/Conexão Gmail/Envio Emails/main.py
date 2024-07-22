@@ -8,6 +8,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from os import path, listdir, mkdir, rename
 from PyPDF2 import PdfReader
+from typing import List
 import pandas as pd
 import smtplib
 import sys
@@ -37,28 +38,39 @@ def renomeia_pdfs(tipo: str) -> set[int]:
             arq_pdf = PdfReader(file)
             # Cada arquivo tem apenas uma página, então apenas a primeira página precisa ser consider
             rows = arq_pdf.pages[0].extract_text().split('\n')
+        try:
+            cnpj, num_nf = get_cnpj_e_numnf(rows, tipo)
+        except TypeError:
+            print(f'Erro em {arq}')
+            return {0}
         if tipo == 'Boletos':
-            if rows[0] ==
-                cnpj = rows[14].split()[-1]
-            elif rows[0] == 'Beneficiário CPF/CNPJ':
-                cnpj = rows[10].split()[-1]
-            else:
-                input(f'Erro em {arq}')
-                sys.exit()
-            # Remove os símbolos '.', '/' e '-' do CNPJ.
-            cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
             rename(arq, f'{tipo}/{cnpj}.pdf')
         elif tipo == 'Notas':
-            num_nf = rows[4]
-            for row in rows:
-                if 'Retenções Federais' in row:
-                    cnpj = row.split()[-1][-18:]
-                    break
-            # Remove os símbolos '.', '/' e '-' do CNPJ.
-            cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
             rename(arq, f'{tipo}/{cnpj}-{num_nf}.pdf')
         cnpjs.add(cnpj)
     return cnpjs
+
+
+def get_cnpj_e_numnf(rows: List[str], tipo: str) -> (str, str):
+    cnpj, num_nf = '', ''
+    if tipo == 'Boletos':
+        if rows[0] == 'Endereço do Beneficiário ':  # Singular grafeno
+            cnpj = rows[14].split()[-1]
+        elif rows[0] == 'Beneficiário CPF/CNPJ':  # 4S
+            cnpj = rows[10].split()[-1]
+        elif rows[0] == 'Quer emitir boletos de forma rápida? Entre em contato conosco: www.mentorebank.com.brValor Vencimento':
+            cnpj = rows[26].split()[-1][:-6]
+        else:
+            raise TypeError
+    elif tipo == 'Notas':
+        num_nf = rows[4]
+        for row in rows:
+            if 'Retenções Federais' in row:
+                cnpj = row.split()[-1][-18:]
+                break
+    # Remove os símbolos '.', '/' e '-' do CNPJ.
+    cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
+    return cnpj, num_nf
 
 
 def get_creds() -> (str, str):
@@ -104,21 +116,12 @@ def read_boleto(path: str, clientes: pd.DataFrame) -> (str, str):
         boleto = PdfReader(file)
         # Cada boleto tem apenas uma página, então apenas a primeira página precisa ser considerada
         rows: list[str] = boleto.pages[0].extract_text().split('\n')
-    # Acessa o CNPJ e remove os símbolos '.', '/' e '-'.
-    if tipo == 'Boletos':
-        if rows[0] == 'Endereço do Beneficiário ':
-            cnpj = rows[14].split()[-1]
-        elif rows[0] == 'Beneficiário CPF/CNPJ':
-            cnpj = rows[10].split()[-1]
-        else:
-            input(f'Erro em {path}')
-            sys.exit()
-    elif tipo == 'Notas':
-        for row in rows:
-            if 'Retenções Federais' in row:
-                cnpj = row.split()[-1][-18:]
-                break
-    cnpj = int(''.join([char for char in cnpj if char.isnumeric()]))
+    # Acessa o CNPJ do arquivo.
+    try:
+        cnpj, _ = get_cnpj_e_numnf(rows, tipo)
+    except TypeError:
+        print(f'Erro em {path}')
+        return {0}
 
     cliente = clientes['CLIENTE'][clientes['CNPJ'] == cnpj].values[0]
     destinatarios = clientes['EMAIL'][clientes['CNPJ'] == cnpj].values[0].replace(',', '').split()
