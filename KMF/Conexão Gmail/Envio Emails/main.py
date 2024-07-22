@@ -42,7 +42,6 @@ def renomeia_pdfs(tipo: str) -> set[int]:
             cnpj, num_nf = get_cnpj_e_numnf(rows, tipo)
         except TypeError:
             print(f'Erro em {arq}')
-            return {0}
         if tipo == 'Boletos':
             rename(arq, f'{tipo}/{cnpj}.pdf')
         elif tipo == 'Notas':
@@ -52,7 +51,7 @@ def renomeia_pdfs(tipo: str) -> set[int]:
 
 
 def get_cnpj_e_numnf(rows: List[str], tipo: str) -> (str, str):
-    cnpj, num_nf = '', ''
+    cnpj, num_nf = '---', '---'
     if tipo == 'Boletos':
         if rows[0] == 'Endereço do Beneficiário ':  # Singular grafeno
             cnpj = rows[14].split()[-1]
@@ -177,9 +176,9 @@ def main():
         for destinatario in destinatarios:
             # Cria a mensagem.
             msg = MIMEMultipart()
-            msg['From'] = email # Quem envia
+            msg['From'] = email  # Quem envia
             msg['To'] = destinatario
-            msg['Subject'] = 'Boletos'  # Assunto do E-mail
+            msg['Subject'] = f'Faturamento {cliente}'  # Assunto do E-mail
             # Ajusta o corpo da mensagem com base no template.
             msg_html = template.format(cliente=cliente)
             # Anexar o conteúdo HTML ao email
@@ -192,12 +191,12 @@ def main():
                     pdf.add_header('Content-Disposition', 'attachment', filename=path.basename(arq))
                     msg.attach(pdf)
             # Envia o e-mail.
-            conn.sendmail(email, destinatarios, msg.as_string())
+            conn.sendmail(email, destinatario, msg.as_string())
             print(f'{files} enviado para o email: {destinatario}')
 
     # Encerra a conexão
     conn.quit()
-    input('-----Fim-----')
+    print('-----Fim-----')
 
 
 if __name__ == '__main__':
