@@ -22,7 +22,7 @@ options.add_experimental_option("prefs", {
     "plugins.always_open_pdf_externally": True,
     "profile.default_content_setting_values.automatic_downloads": 1
 })
-nav = webdriver.Chrome(service=service, options=options)
+nav = webdriver.Chrome(options=options)
 wait = WebDriverWait(nav, 30)
 
 
