@@ -1,4 +1,4 @@
-from os import listdir, getcwd
+from os import listdir, getcwd, path, mkdir
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.chrome.options import Options
@@ -39,16 +39,6 @@ def espera_aparecer(browser, wait, xpath: str, n: int = 20) -> None:
             return
         sleep(1)
     raise NoSuchElementException(f'{xpath} não encontrado em {n} segundos de espera')
-
-
-def get_cords(prop_w: float, prop_h: float) -> Tuple[int, int]:
-    """
-    Retorna as coordenadas do botão para o editor de texto avançado.
-    """
-    width, height = pyautogui.size()
-    x: int = round(width * prop_w)
-    y: int = round(height * prop_h)
-    return x, y
 
 
 def _interact(browser, wait, action: str, xpath: str, keys: str = None, n_tries: int = 10) -> None:
@@ -92,18 +82,28 @@ def _interact(browser, wait, action: str, xpath: str, keys: str = None, n_tries:
                 pass
 
 
+def read_contracheque(path: str) -> str:
+    with open(f'Contracheques/{path}', 'rb') as file:
+        rows = PdfReader(file).pages[0].extract_text().split('\n')
+        nome = ' '.join(rows[11].split()[1:])
+        return nome
+
+
 def main():
     nome_empresa = 'pontodigital'
     template_aviso = 'TESTE {nome}'
     template_mensagem = 'Contracheque {nome}'
-    nome = 'Luiz'
+    primeira_iteracao = True
+    # Cria a pasta de contracheques.
+    if not path.exists('Contracheques'):
+        mkdir('Contracheques')
+
     parametros = get_parametros()
 
     browser, wait = inicializa_navegador()
 
     def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10) -> None:
         _interact(browser, wait, action, xpath, keys, n_tries)
-
 
     browser.get('https://app.nexti.com/#/login')
     # Preenche o campo 'Empresa'.
@@ -120,49 +120,83 @@ def main():
     interact('click', '//*[@id="app"]/div[1]/div[2]/div/nexti-left-menu/nav/ul/li[3]/a/span[2]')
     # Clica em 'Avisos e convocações'.
     interact('click', '//*[@id="app"]/div[1]/div[2]/div/nexti-left-menu/nav/ul/li[3]/ul/li/a/span')
-    # Clica em 'Novo aviso / convocação'.
-    interact('click', '//*[@id="content"]/div[2]/div[1]/div/div[1]/div[2]/button')
-    # Preenche o campo 'Nome do aviso / convocação:'.
-    interact('write', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[1]/input', template_aviso.format(nome=nome))
-    # Preenche o campo 'Envio em:'.
-    browser.execute_script(f"arguments[0].value = '{parametros['data_envio']}';", browser.find_element('xpath', '//*[@id="startDate"]/p/input'))
-    interact('click', '//*[@id="startDate"]/p/input')  # É necessário dar um clique para que a data seja aceita.
-    # Preenche o campo 'Finaliza em:'.
-    browser.execute_script(f"arguments[0].value = '{parametros['data_fim']}';", browser.find_element('xpath', '//*[@id="endDate"]/p/input'))
-    interact('click', '//*[@id="endDate"]/p/input')  # É necessário dar um clique para que a data seja aceita.
-    # Clica em 'Enviar para: Ambos'.
-    interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[4]/div/label[3]')
-    # Clica em 'Mostrar na: Ambos'.
-    interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[5]/div/label[3]')
-    # Clica em 'Aviso'.
-    interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[6]/div[1]/label/i')
-    # Fecha a mensagem de enviar notificações
-    interact('click', '//*[@id="pushActionRefuse"]')
-    # Clica em 'Editor Avançado'.
-    browser.execute_script("arguments[0].click();", browser.find_element(By.CSS_SELECTOR, '#content > div.__crud-add.ng-scope > div > div.tab-container > div > div > div.app-content-body.checklist-add > div > div > div:nth-child(8) > div.card > div.card-content > div > div > div > div > div > div > label > input'))
-    # Escreve a mensagem de envio.
-    interact('write', '//*[@id="note"]', template_mensagem.format(nome=nome))
-    # Clica em 'Envio do arquivo'.
-    element = browser.find_element(By.CLASS_NAME, 'file_input_label')
-    element.click()
-    while element.text == 'Envio do arquivo':
-        # Escreve o caminho do arquivo.
-        pyautogui.write(r'C:\Users\Usuario\PycharmProjects\Automacoes\KMF\Contracheques Nexti\config.txt')
-        sleep(1)  # Aguarda o carregamento.
-        pyautogui.press('enter')
-        sleep(2)
-    # Clica em 'Próximo'.
-    interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[8]/div[3]/div')
-    # Clica no símbolo com 4 barras horizontais.
-    interact('click', '//*[@id="content"]/div[3]/div/div[2]/ul/div/i[1]')
-    # Clica no símbolo de funil.
-    interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[2]/div/div[2]/div[1]/i')
-
-
-
+    for contracheque in listdir('Contracheques'):
+        nome = read_contracheque(contracheque)
+        # Clica em 'Novo aviso / convocação'.
+        interact('click', '//*[@id="content"]/div[2]/div[1]/div/div[1]/div[2]/button')
+        # Preenche o campo 'Nome do aviso / convocação:'.
+        interact('write', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[1]/input',
+                 template_aviso.format(nome=nome))
+        # Preenche o campo 'Envio em:'.
+        browser.execute_script(f"arguments[0].value = '{parametros['data_envio']}';",
+                               browser.find_element('xpath', '//*[@id="startDate"]/p/input'))
+        interact('click', '//*[@id="startDate"]/p/input')  # É necessário dar um clique para que a data seja aceita.
+        # Preenche o campo 'Finaliza em:'.
+        browser.execute_script(f"arguments[0].value = '{parametros['data_fim']}';",
+                               browser.find_element('xpath', '//*[@id="endDate"]/p/input'))
+        interact('click', '//*[@id="endDate"]/p/input')  # É necessário dar um clique para que a data seja aceita.
+        # Clica em 'Enviar para: Ambos'.
+        interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[4]/div/label[3]')
+        # Clica em 'Mostrar na: Ambos'.
+        interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[5]/div/label[3]')
+        # Clica em 'Aviso'.
+        interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[6]/div[1]/label/i')
+        # Clica em 'Editor Avançado'. (Só é necessário na primeira iteração)
+        if primeira_iteracao:
+            browser.execute_script("arguments[0].click();", browser.find_element(By.CSS_SELECTOR,
+                                                                                 '#content > div.__crud-add.ng-scope > div > div.tab-container > div > div > div.app-content-body.checklist-add > div > div > div:nth-child(8) > div.card > div.card-content > div > div > div > div > div > div > label > input'))
+            primeira_iteracao = False
+            # Fecha a mensagem de enviar notificações
+            interact('click', '//*[@id="pushActionRefuse"]')
+        # Escreve a mensagem de envio.
+        interact('write', '//*[@id="note"]', template_mensagem.format(nome=nome))
+        # Clica em 'Envio do arquivo'.
+        element = browser.find_element(By.CLASS_NAME, 'file_input_label')
+        element.click()
+        # Escolhe o arquivo a ser enviado.
+        while element.text == 'Envio do arquivo':
+            # Escreve o caminho do arquivo.
+            pyautogui.write(f'{getcwd()}\\Contracheques\\{contracheque}')
+            sleep(1)  # Aguarda o carregamento.
+            pyautogui.press('enter')
+            sleep(2)
+        # Clica em 'Próximo'.
+        interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[8]/div[3]/div')
+        # Clica no símbolo com 4 barras horizontais.
+        interact('click', '//*[@id="content"]/div[3]/div/div[2]/ul/div/i[1]')
+        # Clica no símbolo de funil.
+        interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[2]/div/div[2]/div[1]/i')
+        # Preenche o campo 'Colaborador'.
+        interact('write',
+                 '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/input', nome)
+        # Aguarda até a lista ser carregada.
+        while not bool(browser.find_elements('xpath',
+                                             '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li')):
+            sleep(1)
+        print([browser.find_element('xpath',
+                                                                 '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li').text])
+        # Verifica caso o colaborador não seja encontrado.
+        if 'Nenhum resultado encontrado' == browser.find_element('xpath',
+                                                                 '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li').text:
+            # Clica no primeiro X.
+            interact('click', '//*[@id="app"]/div[1]/div/div[1]/div/div[1]/div/a')
+            # Clica no segundo X.
+            interact('click', '//*[@id="content"]/div[3]/div/div[1]/div[2]/a')
+            # Segue para o próximo contracheque.
+            continue
+        sleep(100)
+        # Seleciona o primeiro item da lista.
+        interact('click',
+                 '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li')
+        # Clica em 'Filtrar'.
+        interact('click', '//*[@id="app"]/div[1]/div/div/div/div[4]/a[2]')
+        # Clica em 'Enviar'.
+        interact('click', '//*[@id="content"]/div[3]/div/div[2]/ul/div[2]')
+        sleep(100)
+        # Clica em 'Sim'.
+        interact('click', '//*[@id="app"]/div[2]/div/div/div/div[3]/div[3]/div[2]')
 
     sleep(100)
-
 
 
 main()
@@ -171,4 +205,3 @@ if __name__ == '1__main__':
         main()
     except Exception as e:
         print(e)
-
