@@ -10,6 +10,8 @@ from PyPDF2 import PdfReader
 from time import sleep
 import pyautogui
 
+pyautogui.FAILSAFE = False
+
 
 def inicializa_navegador():
     options = Options()
@@ -34,10 +36,13 @@ def espera_aparecer(browser, wait, xpath: str, n: int = 20) -> None:
     :param n: O total de segundos que se deseja esperar.
     """
     for _ in range(n):
-        if browser.find_elements('xpath', xpath):
-            wait.until(EC.element_to_be_clickable(('xpath', xpath)))
-            return
-        sleep(1)
+        try:
+            if browser.find_elements('xpath', xpath):
+                wait.until(EC.element_to_be_clickable(('xpath', xpath)))
+                return
+            sleep(1)
+        except StaleElementReferenceException:
+            sleep(1)
     raise NoSuchElementException(f'{xpath} não encontrado em {n} segundos de espera')
 
 
@@ -53,7 +58,7 @@ def _interact(browser, wait, action: str, xpath: str, keys: str = None, n_tries:
     try:
         espera_aparecer(browser, wait, xpath)
     except NoSuchElementException:
-        print(xpath)
+        raise Exception(f'Elemento nao encontrado: {xpath}')
     for try_i in range(n_tries):
         try:
             # Find the element
@@ -80,6 +85,15 @@ def _interact(browser, wait, action: str, xpath: str, keys: str = None, n_tries:
                 alert.dismiss()  # Recusa o alerta
             except NoAlertPresentException:
                 pass
+
+
+def js_write(browser, xpath: str, keys: str, n_tries: int = 10) -> None:
+    for _ in range(n_tries):
+        try:
+            browser.execute_script(f"arguments[0].value = '{keys}';", browser.find_element(By.XPATH, xpath))
+            return
+        except Exception as e:
+            sleep(1)
 
 
 def read_contracheque(path: str) -> str:
@@ -128,12 +142,14 @@ def main():
         interact('write', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[1]/input',
                  template_aviso.format(nome=nome))
         # Preenche o campo 'Envio em:'.
-        browser.execute_script(f"arguments[0].value = '{parametros['data_envio']}';",
-                               browser.find_element('xpath', '//*[@id="startDate"]/p/input'))
+        js_write(browser, '//*[@id="startDate"]/p/input', parametros['data_envio'])
+        sleep(0.1)
+        js_write(browser, '//*[@id="startDate"]/p/input', parametros['data_envio'])
         interact('click', '//*[@id="startDate"]/p/input')  # É necessário dar um clique para que a data seja aceita.
         # Preenche o campo 'Finaliza em:'.
-        browser.execute_script(f"arguments[0].value = '{parametros['data_fim']}';",
-                               browser.find_element('xpath', '//*[@id="endDate"]/p/input'))
+        js_write(browser, '//*[@id="endDate"]/p/input', parametros['data_fim'])
+        sleep(0.1)
+        js_write(browser, '//*[@id="endDate"]/p/input', parametros['data_fim'])
         interact('click', '//*[@id="endDate"]/p/input')  # É necessário dar um clique para que a data seja aceita.
         # Clica em 'Enviar para: Ambos'.
         interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[1]/div/div/div[4]/div/label[3]')
@@ -166,25 +182,34 @@ def main():
         interact('click', '//*[@id="content"]/div[3]/div/div[2]/ul/div/i[1]')
         # Clica no símbolo de funil.
         interact('click', '//*[@id="content"]/div[3]/div/div[2]/div/div/div[2]/div/div[2]/div[1]/i')
+        # ---------------------------
+        nome = 'PEDRO PEREIRA'
+        # ----------------------------
         # Preenche o campo 'Colaborador'.
+        interact('clear', '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/input')
         interact('write',
                  '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/input', nome)
         # Aguarda até a lista ser carregada.
         while not bool(browser.find_elements('xpath',
                                              '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li')):
             sleep(1)
-        print([browser.find_element('xpath',
-                                                                 '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li').text])
-        # Verifica caso o colaborador não seja encontrado.
-        if 'Nenhum resultado encontrado' == browser.find_element('xpath',
-                                                                 '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li').text:
+        # Espera até o resultado da consulta por colaborador ser carregada.
+        autocomplete_results = []
+        while not autocomplete_results:
+            sleep(1)
+            # Acessa o texto de todos os elementos com a classe 'autocomplete-results'.
+            autocomplete_results = [element.text for element in
+                                    browser.find_elements(By.CLASS_NAME, 'autocomplete-results')
+                                    if element.text]
+
+        if 'Nenhum resultado encontrado' in autocomplete_results:
             # Clica no primeiro X.
             interact('click', '//*[@id="app"]/div[1]/div/div[1]/div/div[1]/div/a')
             # Clica no segundo X.
             interact('click', '//*[@id="content"]/div[3]/div/div[1]/div[2]/a')
             # Segue para o próximo contracheque.
             continue
-        sleep(100)
+
         # Seleciona o primeiro item da lista.
         interact('click',
                  '//*[@id="app"]/div[1]/div/div/div/div[2]/div/form/div[6]/div[1]/autocomplete/div/div[1]/div[2]/li')
@@ -192,10 +217,10 @@ def main():
         interact('click', '//*[@id="app"]/div[1]/div/div/div/div[4]/a[2]')
         # Clica em 'Enviar'.
         interact('click', '//*[@id="content"]/div[3]/div/div[2]/ul/div[2]')
-        sleep(100)
         # Clica em 'Sim'.
         interact('click', '//*[@id="app"]/div[2]/div/div/div/div[3]/div[3]/div[2]')
 
+        print(f'Sucesso {nome} -- {contracheque}')
     sleep(100)
 
 
