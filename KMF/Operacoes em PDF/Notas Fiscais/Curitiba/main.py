@@ -5,6 +5,7 @@ import pytesseract
 import cv2 as cv
 import fitz
 import os
+from sys import exit
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
@@ -27,8 +28,13 @@ def pdf_to_img(path: str, page: int = 0) -> None:
     image = page.get_pixmap()  # Converte a página num objeto de imagem.
     image.save('img.png')  # Salva a imagem num arquivo.
     image = Image.open('img.png')
-    #                    l     u   r    d
-    image = image.crop((125, 240, 350, 255))
+    #                        l    u    r    d
+    if image.size == (612, 792):
+        image = image.crop((125, 240, 350, 255))
+    elif image.size == (595, 842):
+        image = image.crop((110, 235, 380, 255))
+    else:
+        raise TypeError()
     image.save('img.png')
 
 
@@ -55,7 +61,10 @@ def main():
         pdf_split(file)
     files = [f'Arquivos/{file}' for file in os.listdir('Arquivos')]
     for file in tqdm(files):
-        pdf_to_img(file)
+        try:
+            pdf_to_img(file)
+        except TypeError:
+            continue
         nome: str = extract_text('img.png').strip()
         os.rename(file, f'Arquivos/NF - {nome}.pdf')
     # Apaga as imagens residuais.
@@ -67,3 +76,4 @@ if __name__ == '__main__':
         main()
     except Exception as e:
         print(e)
+        input()
