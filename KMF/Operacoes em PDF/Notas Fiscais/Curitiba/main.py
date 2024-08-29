@@ -5,7 +5,6 @@ import pytesseract
 import cv2 as cv
 import fitz
 import os
-from sys import exit
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
@@ -31,17 +30,20 @@ def pdf_to_img(path: str, page: int = 0) -> None:
     image = Image.open('img.png')
     #                        l    u    r    d
     if image.size == (612, 792):
-        image = image.crop((125, 240, 350, 255))
+        nome = image.crop((125, 240, 350, 255))
+        num_nf = image.crop((505, 52, 535, 63))
     elif image.size == (595, 842):
-        image = image.crop((110, 235, 380, 255))
+        nome = image.crop((110, 235, 380, 255))
+        num_nf = image.crop((520, 30, 550, 45))
     else:
         raise TypeError()
-    image.save('img.png')
+    nome.save('nome.png')
+    num_nf.save('num_nf.png')
 
 
-def extract_text(path: str) -> str:
+def extract_text(path: str, config='--psm 10') -> str:
     img = cv.imread(path)
-    scale_percent = 5  # Aumentar a imagem em 150%
+    scale_percent = 15  # Aumentar a imagem em 150%
     # Calculando o novo tamanho
     new_width = int(img.shape[1] * scale_percent)
     new_height = int(img.shape[0] * scale_percent)
@@ -50,7 +52,7 @@ def extract_text(path: str) -> str:
     # 1. Conversão para escala de cinza
     img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     # Executar o OCR na imagem processada
-    text = pytesseract.image_to_string(img, config=r'--psm 10')
+    text = pytesseract.image_to_string(img, config=config)
     return text
 
 
@@ -64,13 +66,16 @@ def main():
             pdf_to_img(file)
         except TypeError:
             continue
-        nome: str = extract_text('img.png').strip()
-        os.rename(file, f'NF - {nome}.pdf')
+        nome: str = extract_text('nome.png', config='--psm 7').strip()
+        num_nf: str = extract_text('num_nf.png', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
+        os.rename(file, f'NF {num_nf} - {nome}.pdf')
     # Apaga as imagens residuais.
     os.remove('img.png')
+    os.remove('nome.png')
+    os.remove('num_nf.png')
 
-main()
-if __name__ == '__1main__':
+
+if __name__ == '__main__':
     try:
         main()
     except Exception as e:
