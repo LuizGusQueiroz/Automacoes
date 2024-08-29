@@ -16,7 +16,7 @@ import base64
 
 dir = f'{getcwd()}\\notas'
 # Inicializa o navegador
-service = Service(ChromeDriverManager().install())
+service = Service()
 options = Options()
 options.add_experimental_option("prefs", {
     "download.default_directory": dir,

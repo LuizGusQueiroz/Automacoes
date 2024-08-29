@@ -14,11 +14,12 @@ def pdf_split(path: str) -> None:
 
     with open(path, 'rb') as file:
         pdf = PdfReader(file)
-        for i, page in enumerate(pdf.pages):
-            writer = PdfWriter()
-            writer.add_page(page)
-            with open(f'Arquivos/{path[:-4]}-{i}.pdf', 'wb') as output:
-                writer.write(output)
+        if len(pdf.pages) > 1:
+            for i, page in enumerate(pdf.pages):
+                writer = PdfWriter()
+                writer.add_page(page)
+                with open(f'{path[:-4]}-{i}.pdf', 'wb') as output:
+                    writer.write(output)
 
 
 def pdf_to_img(path: str, page: int = 0) -> None:
@@ -54,24 +55,22 @@ def extract_text(path: str) -> str:
 
 
 def main():
-    if not os.path.exists('Arquivos'):
-        os.mkdir('Arquivos')
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in files:
         pdf_split(file)
-    files = [f'Arquivos/{file}' for file in os.listdir('Arquivos')]
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in tqdm(files):
         try:
             pdf_to_img(file)
         except TypeError:
             continue
         nome: str = extract_text('img.png').strip()
-        os.rename(file, f'Arquivos/NF - {nome}.pdf')
+        os.rename(file, f'NF - {nome}.pdf')
     # Apaga as imagens residuais.
     os.remove('img.png')
 
-
-if __name__ == '__main__':
+main()
+if __name__ == '__1main__':
     try:
         main()
     except Exception as e:
