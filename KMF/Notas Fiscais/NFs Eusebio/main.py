@@ -13,7 +13,6 @@ from time import sleep
 def main():
 
     # Inicializa o navegador
-    service = Service(ChromeDriverManager().install())
     options = Options()
     options.add_experimental_option("prefs", {
         "download.default_directory": f'{getcwd()}\\notas',
@@ -22,7 +21,7 @@ def main():
         "plugins.always_open_pdf_externally": True,
         "profile.default_content_setting_values.automatic_downloads": 1
     })
-    nav = webdriver.Chrome(service=service, options=options)
+    nav = webdriver.Chrome(options=options)
 
 
     def espera_aparecer(xpath: str, n: int = 20) -> None:
