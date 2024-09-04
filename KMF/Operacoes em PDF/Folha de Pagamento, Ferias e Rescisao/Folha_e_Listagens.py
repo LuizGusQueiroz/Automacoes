@@ -17,7 +17,7 @@ def main():
 
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
-                tipo = page[0][:page[0].find(' Pág.')]
+                tipo = ' '.join(page[0].split()[:3])
                 # Verifica o tipo de arquivo
                 if tipo == 'Folha de Pagamento':
                     lotacao_nova = page[5]
