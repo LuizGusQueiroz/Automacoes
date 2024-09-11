@@ -5,68 +5,90 @@ import pandas as pd
 from sys import exit
 import os
 
-VERSION = '0.01.01'
 
+VERSION: str = '0.02.01'
+
+main_msg: str = '''
+ 0: Informações 
+ 1: Documentos de Admissão 
+ 2: Documentos de Rescisão 
+ 3: Boletos BMP 
+ 4: Boletos de Cobrança 
+ 5: Fichas de Registro 
+ 6: Folha de Pagamento, Férias e Rescisão 
+ 7: Guias FGTS 
+ 8: Listagem de Conferência 
+ 9: Recibos de Pagamento 
+10: Recibos FOLK 
+11: Relatório de Serviços Administrativos 
+12: Resumo Geral Mês/Período 
+'''
+# Substitui o primeiro item da lista.
+help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
+options: List[int] = list(range(len(main_msg.split('\n')) + 1))
 
 def main():
-    print('Manipulador de PDFs \nV:', VERSION)
+    print('Manipulador de PDFs')
+    print('V: ', VERSION)
     option: int = main_hub()
     if option == 0:
         info_hub()
     elif option == 1:
-        admissoes()
+        documentos_admissao()
     elif option == 2:
-        boletos_bmp()
+        documentos_rescisao()
     elif option == 3:
-        boletos_cobranca()
+        boletos_bmp()
     elif option == 4:
-        fichas_de_registro()
+        boletos_cobranca()
     elif option == 5:
-        folha_rescisao_ferias()
+        fichas_de_registro()
     elif option == 6:
-        guias_fgts()
+        folha_rescisao_ferias()
     elif option == 7:
-        listagem_conferencia()
+        guias_fgts()
     elif option == 8:
-        recibos_pagamento()
+        listagem_conferencia()
     elif option == 9:
-        recibos_folk()
+        recibos_pagamento()
     elif option == 10:
+        recibos_folk()
+    elif option == 11:
         rel_servicos_adm()
+    elif option == 12:
+        resumo_geral_mes_periodo()
 
 
 def main_hub() -> int:
-    n_options: int = 15
-    options: List[int] = list(range(n_options + 1))
     option: int = -1
-    msg: str = '''
-     0: Informações \n
-     1: Documentos Admissionais \n
-     2: Boletos BMP \n
-     3: Boletos de Cobrança \n
-     4: Fichas de Registro \n
-     5: Folha de Pagamento, Férias e Rescisão \n
-     6: Guias FGTS \n
-     7: Listagem de Conferência \n
-     8: Recibos de Pagamento \n
-     9: Recibos FOLK \n
-    10: Relatório de Serviços Administrativos \n
-    '''
 
     while option not in options:
-        print(msg)
+        print('Digite uma opção de documento para separar.')
+        print(main_msg)
         try:
-            option = int(input())
+            option = int(input('Escolha: '))
         except ValueError:
             pass
     return option
 
 
 def info_hub():
-    ...
+    option: int = -1
+    while option not in options:
+        print('Escolha uma opção para abrir um arquivo do tipo e ler seu funcionamento.')
+        print(help_msg)
+        try:
+            option = int(input('Escolha: '))
+        except ValueError:
+            pass
+    help_doc(option)
 
 
-def admissoes():
+def help_doc(option: int) -> None:
+    os.startfile(os.getcwd() + fr'\configs\sample\{option}.pdf')
+
+
+def documentos_admissao():
     # Cria a pasta de destino dos documentos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
@@ -156,6 +178,44 @@ def admissoes():
                 # Salva o arquivo
                 with open(file_name, "wb") as output_pdf:
                     pdf_writer.write(output_pdf)
+
+
+def documentos_rescisao():
+
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+
+    for arq in [file for file in os.listdir() if '.pdf' in file]:
+        with open(arq, 'rb') as file:
+            # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
+            pdf = PdfReader(file)
+
+            for pag in pdf.pages:#tqdm(pdf.pages):
+                rows = pag.extract_text().split('\n')
+                tipo = rows[0]
+                if tipo == 'TERMO DE RESCISÃO DO CONTRATO DE TRABALHO':
+                    cpf = rows[40]
+                    nome = rows[31]
+                elif tipo == 'TERMO DE QUITAÇÃO DE RESCISÃO DO CONTRATO DE TRABALHO':
+                    cpf = rows[10][:14]
+                    nome = rows[8]
+                else:
+                    print(f'Tipo de documento não suportado: [{tipo}].')
+                    continue
+
+                cpf = ''.join(char for char in cpf if char.isnumeric())
+                file_name = f'Arquivos/{nome}{cpf}.pdf'
+                writer = PdfWriter()
+                if os.path.exists(file_name):
+                    pdf_temp = PdfReader(file_name)
+                    # Copia todas as páginas do documento do funcionário para o writer
+                    for page_num in range(len(pdf_temp.pages)):
+                        writer.add_page(pdf_temp.pages[page_num])
+                # Adiciona a página atual.
+                writer.add_page(pag)
+                # Salva o arquivo
+                with open(file_name, "wb") as output_pdf:
+                    writer.write(output_pdf)
 
 
 def boletos_bmp():
@@ -454,6 +514,50 @@ def rel_servicos_adm():
                 with open(f'Arquivos/{lotacao}.pdf', 'wb') as output_file:
                     pdf_writer.write(output_file)
 
+
+def resumo_geral_mes_periodo():
+    # Cria a pasta de destino dos recibos
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+
+    for arq in [file for file in os.listdir() if '.pdf' in file]:
+        with open(arq, 'rb') as file:
+            # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
+            pdf_reader = PdfReader(file)
+            pdf_writer = PdfWriter()
+            empresa = ''
+
+            for page_pdf in tqdm(pdf_reader.pages):
+                page = page_pdf.extract_text().split('\n')
+                # Acessa o nome e CNPJ da empresa
+                for row in page:
+                    if 'Empresa: ' in row:
+                        idx = 1
+                        while not row[-idx].isnumeric():
+                            idx += 1
+                        row = row[8:1 - idx].split()
+                        cnpj = ''.join(i for i in row[-1] if i.isnumeric())
+                        idx = 0
+                        while row[idx] != '-':
+                            idx += 1
+                        empresa_nova = ' '.join(row[:idx])
+                        break
+
+                # Verifica se a empresa e a mesma, se for, junta as páginas,
+                # caso contrário, salva o arquivo atual e cria um pdf novo.
+                if empresa_nova != empresa:
+                    if pdf_writer.pages:
+                        with open(f'Arquivos/{empresa}-{cnpj}.pdf', 'wb') as output_file:
+                            pdf_writer.write(output_file)
+                        pdf_writer = PdfWriter()
+                    empresa = empresa_nova
+                    pdf_writer.add_page(page_pdf)
+                else:
+                    pdf_writer.add_page(page_pdf)
+            # Salva o último arquivo aberto
+            with open(f'Arquivos/{empresa}-{cnpj}.pdf', 'wb') as output_file:
+                pdf_writer.write(output_file)
+            pdf_writer = PdfWriter()
 
 
 if __name__ == '__main__':
