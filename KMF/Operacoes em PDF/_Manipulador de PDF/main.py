@@ -3,10 +3,11 @@ from tqdm import tqdm
 from typing import List
 import pandas as pd
 from sys import exit
+import json
 import os
 
 
-VERSION: str = '0.02.01'
+VERSION: str = '0.03.01'
 
 main_msg: str = '''
  0: Informações 
@@ -27,10 +28,17 @@ main_msg: str = '''
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
 options: List[int] = list(range(len(main_msg.split('\n')) + 1))
 
+
 def main():
     print('Manipulador de PDFs')
     print('V: ', VERSION)
-    option: int = main_hub()
+    main_hub()  # inicia o menu.
+
+
+def process_option(option: int) -> None:
+    """
+    Processa a opção do usuário.
+    """
     if option == 0:
         info_hub()
     elif option == 1:
@@ -59,7 +67,7 @@ def main():
         resumo_geral_mes_periodo()
 
 
-def main_hub() -> int:
+def main_hub():
     option: int = -1
 
     while option not in options:
@@ -67,25 +75,39 @@ def main_hub() -> int:
         print(main_msg)
         try:
             option = int(input('Escolha: '))
+            limpa_terminal()
         except ValueError:
             pass
-    return option
+    process_option(option)
 
 
-def info_hub():
+def info_hub() -> None:
     option: int = -1
     while option not in options:
         print('Escolha uma opção para abrir um arquivo do tipo e ler seu funcionamento.')
         print(help_msg)
         try:
             option = int(input('Escolha: '))
+            limpa_terminal()
         except ValueError:
             pass
-    help_doc(option)
+    if option not in options:
+        info_hub()
+    elif option != 0:
+        help_doc(option)
+    else:
+        main_hub()
 
 
 def help_doc(option: int) -> None:
     os.startfile(os.getcwd() + fr'\configs\sample\{option}.pdf')
+    with open('configs/READMEs.json', 'r', encoding='utf-8') as file:
+        print(json.load(file)[str(option)])
+    print('Um modelo deste arquivo está sendo aberto...')
+
+
+def limpa_terminal() -> None:
+    print('\n' * 30)
 
 
 def documentos_admissao():
