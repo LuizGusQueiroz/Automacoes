@@ -19,7 +19,7 @@ import os
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
-VERSION: str = '0.04.01'
+VERSION: str = '0.04.02'
 
 main_msg: str = '''
  0: Informações 
@@ -42,8 +42,8 @@ main_msg: str = '''
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
-options: List[int] = list(range(len(main_msg.split('\n')) + 1))
-
+#options: List[int] = list(range(len(main_msg.split('\n')) + 1))
+options = list(range(100))
 
 def main():
     print('Manipulador de PDFs')
@@ -157,7 +157,7 @@ def limpa_terminal() -> None:
     print('\n' * 30)
 
 
-def salva_relatorio(values: List[List]):
+def salva_relatorio(row: List[List]):
     SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
     SAMPLE_SPREADSHEET_ID = "15gGHm67_W5maIas-4_YPSzE6R5f_CNJGcza_BJFlNBk"  # Código da planilha
     SAMPLE_RANGE_NAME = "Página1!A{}:D1000"  # Intervalo que será lido
@@ -188,12 +188,12 @@ def salva_relatorio(values: List[List]):
         )
         values = result.get("values", [])
 
-        row = 2 + len(values)
+        idx = 2 + len(values)
 
         result = (
             sheet.values()
-            .update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(row),
-                    valueInputOption='USER_ENTERED', body={"values": values})
+            .update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(idx),
+                    valueInputOption='USER_ENTERED', body={"values": row})
             .execute()
         )
 
@@ -209,8 +209,8 @@ def documentos_admissao() -> int:  # 1
     # Itera por todos os arquivos .pdf.
     for file in [file for file in os.listdir() if '.pdf' in file.lower()]:
         # Cria a pasta para o arquivo.
-        if not os.path.exists(f'Documentos\\{file[:-4]}'):
-            os.mkdir(f'Documentos\\{file[:-4]}')
+        if not os.path.exists(f'Arquivos\\{file[:-4]}'):
+            os.mkdir(f'Arquivos\\{file[:-4]}')
         with open(file, 'rb') as file_b:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF.
             pdf_reader = PdfReader(file_b)
@@ -280,7 +280,7 @@ def documentos_admissao() -> int:  # 1
                     input()
                     continue
 
-                file_name = f'Documentos\\{file[:-4]}\\{nome}.pdf'
+                file_name = f'Arquivos\\{file[:-4]}\\{nome}.pdf'
                 pdf_writer = PdfWriter()
                 # Verifica se já existe um arquivo para este funcionário
                 if os.path.exists(file_name):
@@ -559,7 +559,7 @@ def recibos_pagamento() -> int:  # 9
 
     escolha = ''
     while escolha not in ['1', '2']:
-        escolha = input('---------------\n'
+        escolha = input('-' * 30 + '\n'
                         '1: Separar por funcionário.\n'
                         '2: Separar por Lotação.\n'
                         'Escolha: ')
@@ -579,7 +579,7 @@ def recibos_pagamento() -> int:  # 9
                     nome = rows[11]
                     # Acessa a linha que contém a lotação do empregado.
                     lotacao = rows[9][:-5]
-                    file_name = f'Recibos\\{lotacao}-{nome}.pdf'.replace('/', '')
+                    file_name = f'Arquivos\\{lotacao}-{nome}.pdf'.replace('/', '')
                     pdf_writer = PdfWriter()
                     # Adiciona a página atual ao objeto PdfWriter
                     pdf_writer.add_page(pag)
@@ -802,7 +802,7 @@ def nfs_fortaleza() -> int:  # 32
         with open(file, 'rb') as file_b:
             pdf = PdfReader(file_b).pages[0]
             rows = pdf.extract_text().split('\n')
-            tot_pags += len(PdfReader(file_b).pags)
+            tot_pags += len(PdfReader(file_b).pages)
 
         if rows[0] == 'Número da':
             # Modelo 1
