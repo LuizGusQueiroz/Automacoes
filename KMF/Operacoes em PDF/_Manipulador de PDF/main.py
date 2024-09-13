@@ -1,3 +1,9 @@
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from datetime import datetime
 from PyPDF2 import PdfReader, PdfWriter
 from typing import List, Dict
 from tqdm import tqdm
@@ -8,11 +14,12 @@ import pytesseract
 import cv2 as cv
 import fitz
 import json
+import time
 import os
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
-VERSION: str = '0.03.01'
+VERSION: str = '0.04.01'
 
 main_msg: str = '''
  0: Informações 
@@ -48,40 +55,63 @@ def process_option(option: int) -> None:
     """
     Processa a opção do usuário.
     """
+    data = datetime.now().strftime("%d/%m/%Y")
+    st = time.time()
+
     if option == 0:
         info_hub()
     elif option == 1:
-        documentos_admissao()
+        n_pags = documentos_admissao()
+        values = [[data, 'Documentos de Admissão', n_pags, time.time()-st]]
     elif option == 2:
-        documentos_rescisao()
+        n_pags = documentos_rescisao()
+        values = [[data, 'Documentos de Rescisão', n_pags, time.time()-st]]
     elif option == 3:
-        boletos_bmp()
+        n_pags = boletos_bmp()
+        values = [[data, 'Boletos BMP', n_pags, time.time()-st]]
     elif option == 4:
-        boletos_cobranca()
+        n_pags = boletos_cobranca()
+        values = [[data, 'Boletos de Cobrança', n_pags, time.time()-st]]
     elif option == 5:
-        fichas_de_registro()
+        n_pags = fichas_de_registro()
+        values = [[data, 'Fichas de Registro', n_pags, time.time()-st]]
     elif option == 6:
-        folha_rescisao_ferias()
+        n_pags = folha_rescisao_ferias()
+        values = [[data, 'Folha de Pagamento, Férias e Rescisão', n_pags, time.time()-st]]
     elif option == 7:
-        guias_fgts()
+        n_pags = guias_fgts()
+        values = [[data, 'Guias FGTS', n_pags, time.time()-st]]
     elif option == 8:
-        listagem_conferencia()
+        n_pags = listagem_conferencia()
+        values = [[data, 'Listagem de Conferência', n_pags, time.time()-st]]
     elif option == 9:
-        recibos_pagamento()
+        n_pags = recibos_pagamento()
+        values = [[data, 'Recibos de Pagamento', n_pags, time.time()-st]]
     elif option == 10:
-        recibos_folk()
+        n_pags = recibos_folk()
+        values = [[data, 'Recibos FOLK', n_pags, time.time()-st]]
     elif option == 11:
-        rel_servicos_adm()
+        n_pags = rel_servicos_adm()
+        values = [[data, 'Relatório de Serviços Administrativos', n_pags, time.time()-st]]
     elif option == 12:
-        resumo_geral_mes_periodo()
+        n_pags = resumo_geral_mes_periodo()
+        values = [[data, 'Resumo Geral Mês/Período', n_pags, time.time()-st]]
     elif option == 31:
-        nfs_curitiba()
+        n_pags = nfs_curitiba()
+        values = [[data, 'NFs Curitiba', n_pags, time.time()-st]]
     elif option == 32:
-        nfs_fortaleza()
+        n_pags = nfs_fortaleza()
+        values = [[data, 'NFs Fortaleza', n_pags, time.time()-st]]
     elif option == 33:
-        nfs_salvador()
+        n_pags = nfs_salvador()
+        values = [[data, 'NFs Salvador', n_pags, time.time()-st]]
     elif option == 34:
-        nfs_sorocaba()
+        n_pags = nfs_sorocaba()
+        values = [[data, 'NFs Sorocaba', n_pags, time.time()-st]]
+
+    if option != 0:
+        salva_relatorio(values)
+
 
 
 def main_hub():
@@ -127,10 +157,55 @@ def limpa_terminal() -> None:
     print('\n' * 30)
 
 
-def documentos_admissao() -> None:  # 1
+def salva_relatorio(values: List[List]):
+    SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+    SAMPLE_SPREADSHEET_ID = "15gGHm67_W5maIas-4_YPSzE6R5f_CNJGcza_BJFlNBk"  # Código da planilha
+    SAMPLE_RANGE_NAME = "Página1!A{}:D1000"  # Intervalo que será lido
+    creds = None
+    if os.path.exists("configs/token.json"):
+        creds = Credentials.from_authorized_user_file("configs/token.json", SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                "configs/client_secret.json", SCOPES
+            )
+            creds = flow.run_local_server(port=0)
+        # Save the credentials for the next run
+        with open("configs/token.json", "w") as token:
+            token.write(creds.to_json())
+
+    try:
+        service = build("sheets", "v4", credentials=creds)
+
+        # Call the Sheets API
+        sheet = service.spreadsheets()
+        result = (
+            sheet.values()
+            .get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(2))
+            .execute()
+        )
+        values = result.get("values", [])
+
+        row = 2 + len(values)
+
+        result = (
+            sheet.values()
+            .update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(row),
+                    valueInputOption='USER_ENTERED', body={"values": values})
+            .execute()
+        )
+
+    except HttpError as err:
+        print(err)
+
+
+def documentos_admissao() -> int:  # 1
     # Cria a pasta de destino dos documentos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
     # Itera por todos os arquivos .pdf.
     for file in [file for file in os.listdir() if '.pdf' in file.lower()]:
         # Cria a pasta para o arquivo.
@@ -139,6 +214,7 @@ def documentos_admissao() -> None:  # 1
         with open(file, 'rb') as file_b:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF.
             pdf_reader = PdfReader(file_b)
+            tot_pags += len(pdf_reader.pages)
             # Para cada página, identifica o tipo de documento e o nome do funcionário.
             for pag in tqdm(pdf_reader.pages):
                 rows = pag.extract_text().split('\n')
@@ -217,19 +293,20 @@ def documentos_admissao() -> None:  # 1
                 # Salva o arquivo
                 with open(file_name, "wb") as output_pdf:
                     pdf_writer.write(output_pdf)
+    return tot_pags
 
 
-def documentos_rescisao() -> None:  # 2
+def documentos_rescisao() -> int:  # 2
 
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
-
+    tot_pags: int = 0
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf = PdfReader(file)
-
-            for pag in pdf.pages:#tqdm(pdf.pages):
+            tot_pags += len(pdf.pages)
+            for pag in tqdm(pdf.pages):
                 rows = pag.extract_text().split('\n')
                 tipo = rows[0]
                 if tipo == 'TERMO DE RESCISÃO DO CONTRATO DE TRABALHO':
@@ -255,12 +332,14 @@ def documentos_rescisao() -> None:  # 2
                 # Salva o arquivo
                 with open(file_name, "wb") as output_pdf:
                     writer.write(output_pdf)
+    return tot_pags
 
 
-def boletos_bmp() -> None:  # 3
+def boletos_bmp() -> int:  # 3
     # Cria a pasta de destino dos documentos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
     # Itera por todos os arquivos .pdf.
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in tqdm(files):
@@ -269,18 +348,23 @@ def boletos_bmp() -> None:  # 3
             rows = pdf.extract_text().split('\n')
             row = rows[-2]
             nome = row[:row.find(' - CPF/CNPJ: ')]
+            tot_pags += len(PdfReader(file_b).pages)
         os.rename(file, f'Arquivos/BOLETO - {nome}.pdf')
+    return tot_pags
 
 
-def boletos_cobranca() -> None:  # 4
+def boletos_cobranca() -> int:  # 4
     # Cria a pasta de destino dos recibos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
+
     # Itera por todos os arquivos .pdf.
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
+            tot_pags += len(pdf_reader.pages)
             # Itera sobre todas as páginas do PDF
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
@@ -301,17 +385,21 @@ def boletos_cobranca() -> None:  # 4
                 # Salva a página em um novo arquivo PDF.
                 with open(f'Arquivos\\{nome_arq}', 'wb') as output_file:
                     pdf_writer.write(output_file)
+    return tot_pags
 
 
-def fichas_de_registro() -> None:  # 5
+def fichas_de_registro() -> int:  # 5
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
+
     for file in [file for file in os.listdir() if '.pdf' in file]:
         diretorio = f'Arquivos/{file[:-4]}'
         if not os.path.exists(diretorio):
             os.mkdir(diretorio)
         with open(file, 'rb') as file_b:
             pdf = PdfReader(file_b)
+            tot_pags += len(pdf.pages)
             # Percorre todas as páginas do PDF.
             for page in tqdm(pdf.pages):
                 rows = page.extract_text().split('\n')
@@ -324,12 +412,14 @@ def fichas_de_registro() -> None:  # 5
                 # Salva a página em um novo arquivo PDF
                 with open(f'{diretorio}/{nome}.pdf', 'wb') as output_file:
                     writer.write(output_file)
+    return tot_pags
 
 
-def folha_rescisao_ferias() -> None:  # 6
+def folha_rescisao_ferias() -> int:  # 6
     # Cria a pasta de destino dos recibos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
 
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
@@ -337,7 +427,7 @@ def folha_rescisao_ferias() -> None:  # 6
             pdf_reader = PdfReader(file)
             pdf_writer = PdfWriter()
             lotacao = ''
-
+            tot_pags += len(pdf_reader.pages)
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
                 tipo = ' '.join(page[0].split()[:3])
@@ -365,9 +455,10 @@ def folha_rescisao_ferias() -> None:  # 6
                     pdf_writer.add_page(page_pdf)
                 else:
                     pdf_writer.add_page(page_pdf)
+    return tot_pags
 
 
-def guias_fgts() -> None:  # 7
+def guias_fgts() -> int:  # 7
     def get_de_para() -> pd.DataFrame:
         files = [file for file in os.listdir() if '.xls' in file]
         if len(files) != 1:
@@ -382,12 +473,13 @@ def guias_fgts() -> None:  # 7
     # Cria a pasta de destino dos recibos
     if not os.path.exists('Guias'):
         os.mkdir('Guias')
+    tot_pags: int = 0
 
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
-
+            tot_pags += len(pdf_reader.pages)
             # Itera sobre todas as páginas do PDF
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
@@ -416,9 +508,10 @@ def guias_fgts() -> None:  # 7
                     # Salva a página em um novo arquivo PDF
                     with open(f'Guias/{nome}', 'wb') as output_file:
                         pdf_writer.write(output_file)
+    return tot_pags
 
 
-def listagem_conferencia() -> None:  # 8
+def listagem_conferencia() -> int:  # 8
     """
     Lista todos os arquivos PDF no diretório atual (só irá funcionar para Listagens de Conferência)
     e separa em subarquivos, agrupados pela lotação.
@@ -426,6 +519,7 @@ def listagem_conferencia() -> None:  # 8
     # Cria a pasta de destino dos recibos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
 
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         folder_name = arq.replace('.pdf', '').replace('/', '')
@@ -437,7 +531,7 @@ def listagem_conferencia() -> None:  # 8
             pdf_reader = PdfReader(file)
             pdf_writer = PdfWriter()
             lotacao = ''
-
+            tot_pags += len(pdf_reader.pages)
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
                 # Acessa a lotação
@@ -454,12 +548,14 @@ def listagem_conferencia() -> None:  # 8
                 else:
                     pdf_writer.add_page(page_pdf)
             # Não é necessário salvar o último arquivo em memória, pois é apenas o resumo.
+    return tot_pags
 
 
-def recibos_pagamento() -> None:  # 9
+def recibos_pagamento() -> int:  # 9
     # Cria a pasta de destino dos recibos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
 
     escolha = ''
     while escolha not in ['1', '2']:
@@ -474,7 +570,7 @@ def recibos_pagamento() -> None:  # 9
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
-
+            tot_pags += len(pdf_reader.pages)
             if escolha == '1':  # Separa por funcionário
                 # Itera sobre todas as páginas do PDF
                 for pag in tqdm(pdf_reader.pages):
@@ -510,17 +606,20 @@ def recibos_pagamento() -> None:  # 9
                     # Salva o arquivo
                     with open(file_name, "wb") as output_pdf:
                         pdf_writer.write(output_pdf)
+    return tot_pags
 
 
-def recibos_folk() -> None:  # 10
+def recibos_folk() -> int:  # 10
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
+    tot_pags: int = 0
 
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
 
     for file in files:
         with open(file, 'rb') as file_b:
             pdf = PdfReader(file)
+        tot_pags += len(pdf.pages)
         for page in tqdm(pdf.pages):
             rows = page.extract_text().split('\n')
             nome = rows[1][rows[1].find('.')+1:]
@@ -528,18 +627,19 @@ def recibos_folk() -> None:  # 10
             writer.add_page(page)
             with open(f'Arquivos/RECIBO - {nome}.pdf', 'wb') as output:
                 writer.write(output)
+    return tot_pags
 
 
-def rel_servicos_adm() -> None:  # 11
+def rel_servicos_adm() -> int:  # 11
     # Cria a pasta de destino dos arquivos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
-
+    tot_pags: int = 0
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
-
+            tot_pags += len(pdf_reader.pages)
             # Itera sobre todas as páginas do PDF
             for page in tqdm(pdf_reader.pages):
                 rows = page.extract_text().split('\n')
@@ -552,20 +652,21 @@ def rel_servicos_adm() -> None:  # 11
                 # Salva a página em um novo arquivo PDF
                 with open(f'Arquivos/{lotacao}.pdf', 'wb') as output_file:
                     pdf_writer.write(output_file)
+    return tot_pags
 
 
-def resumo_geral_mes_periodo() -> None:  # 12
+def resumo_geral_mes_periodo() -> int:  # 12
     # Cria a pasta de destino dos recibos
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
-
+    tot_pags: int = 0
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
             pdf_writer = PdfWriter()
             empresa = ''
-
+            tot_pags += len(pdf_reader.pages)
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
                 # Acessa o nome e CNPJ da empresa
@@ -597,6 +698,7 @@ def resumo_geral_mes_periodo() -> None:  # 12
             with open(f'Arquivos/{empresa}-{cnpj}.pdf', 'wb') as output_file:
                 pdf_writer.write(output_file)
             pdf_writer = PdfWriter()
+    return tot_pags
 
 
 # ------------------------------------------------------------------------------------------
@@ -649,7 +751,7 @@ def extract_text(path: str, config='--psm 10') -> str:
     return text
 
 
-def processa_nf(cidade: str) -> None:
+def processa_nf(cidade: str) -> int:
     if cidade == 'Curitiba':
         sizes = {
             (612, 792): [(125, 240, 350, 255), (505, 52, 535, 63)],
@@ -665,9 +767,12 @@ def processa_nf(cidade: str) -> None:
         }
     else:
         raise TypeError('Cidade não cadastrada.')
+    tot_pags: int = 0
 
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in files:
+        with open(file, 'rb') as file_b:
+            tot_pags += len(PdfReader(file_b).pages)
         pdf_split(file)
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in tqdm(files):
@@ -682,18 +787,22 @@ def processa_nf(cidade: str) -> None:
     os.remove('img.png')
     os.remove('nome.png')
     os.remove('num_nf.png')
+    return tot_pags
 
 
-def nfs_curitiba()  -> None:  # 31
-    processa_nf('Curitiba')
+def nfs_curitiba()  -> int:  # 31
+    return processa_nf('Curitiba')
 
 
-def nfs_fortaleza() -> None:  # 32
+def nfs_fortaleza() -> int:  # 32
+    tot_pags: int = 0
+
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in files:
         with open(file, 'rb') as file_b:
             pdf = PdfReader(file_b).pages[0]
             rows = pdf.extract_text().split('\n')
+            tot_pags += len(PdfReader(file_b).pags)
 
         if rows[0] == 'Número da':
             # Modelo 1
@@ -717,15 +826,15 @@ def nfs_fortaleza() -> None:  # 32
         else:
             continue
         os.rename(file, f'NF {num_nf} - {nome}.pdf')
+    return tot_pags
 
 
-def nfs_salvador() -> None:  # 33
-    processa_nf('Salvador')
+def nfs_salvador() -> int:  # 33
+    return processa_nf('Salvador')
 
 
-def nfs_sorocaba() -> None:  # 34
-    processa_nf('Sorocaba')
-
+def nfs_sorocaba() -> int:  # 34
+    return processa_nf('Sorocaba')
 
 
 if __name__ == '__main__':
