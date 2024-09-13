@@ -19,10 +19,10 @@ import os
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
-VERSION: str = '0.04.02'
+VERSION: str = '0.04.03'
 
 main_msg: str = '''
- 0: Informações 
+ 0: Ajuda (Informações) 
  1: Documentos de Admissão 
  2: Documentos de Rescisão 
  3: Boletos BMP 
@@ -142,7 +142,8 @@ def info_hub() -> None:
         info_hub()
     elif option != 0:
         help_doc(option)
-    else:
+        input('\nDigite enter para continuar')
+        print('\n' * 50)
         main_hub()
 
 
