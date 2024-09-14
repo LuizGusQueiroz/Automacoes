@@ -15,7 +15,7 @@ import pandas as pd
 
 dir = f'{getcwd()}\\notas'
 # Inicializa o navegador
-service = Service(ChromeDriverManager().install())
+service = Service()
 options = Options()
 options.add_experimental_option("prefs", {
     "download.default_directory": dir,
@@ -194,7 +194,7 @@ def run() -> None:
     # clica em 'OK'
     interact('click', '//*[@id="consultarnfseForm:competenciaDateEditorButtonOk"]/span')
     # Clica em 'Consultar'
-    interact('click', '//*[@id="consultarnfseForm:j_id231"]')
+    interact('click', '//*[@id="consultarnfseForm:j_id233"]')
     # Aguarda o fim da consulta
     wait.until(EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
     sleep(1)
@@ -206,7 +206,7 @@ def run() -> None:
     Se a consulta houver mais que 10 páginas, precisa ser verificada avançando as páginas, mas se tiver menos
     que 10, a lista conterá apenas os valores até a última página. Ex: só tem 4 páginas -> ['1', '2', '3', '4'].
     '''
-    items = nav.find_element('xpath', '//*[@id="consultarnfseForm:dataTable:j_id368_table"]').text.split()[2:-2]
+    items = nav.find_element('xpath', '//*[@id="consultarnfseForm:dataTable:j_id370_table"]').text.split()[2:-2]
 
     # Verifica se tem menos que 10 páginas
     if '10' in items:
@@ -223,8 +223,7 @@ def run() -> None:
         interact('click', '//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[1]')
     else:
         n_pags = int(items[-1])
-        next_page = f'//*[@id="consultarnfseForm:dataTable:j_id368_table"]/tbody/tr/td[{15 - 10 + n_pags}]'
-
+        next_page = f'//*[@id="consultarnfseForm:dataTable:j_id370_table"]/tbody/tr/td[{15 - 10 + n_pags}]'
     comecou = False
     # Percorre cada página
     for pag in range(n_pags):
@@ -329,7 +328,7 @@ def run() -> None:
             wait.until(
                 EC.invisibility_of_element_located(('xpath', '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
             # Clica no símbolo de lupa da Nota Fiscal
-            interact('click', f'//*[@id="consultarnfseForm:dataTable:{i}:j_id360"]')
+            interact('click', f'//*[@id="consultarnfseForm:dataTable:{i}:j_id362"]')
             # Clica em 'Exportar para PDF'
             interact('click', '//*[@id="j_id157:panelAcoes"]/tbody/tr/td[1]/input')
             sleep(1)
