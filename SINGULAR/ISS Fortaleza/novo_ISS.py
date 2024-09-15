@@ -8,7 +8,7 @@ from selenium.common.exceptions import *
 from selenium import webdriver
 from datetime import datetime
 from PyPDF2 import PdfReader
-from typing import List, Dict
+from typing import List, Dict, Callable
 from time import sleep
 import pandas as pd
 import os
@@ -20,6 +20,11 @@ def main() -> None:
     def interact(action: str, xpath: str, keys: str = None, n_tries: int = 10):
         _interact(nav, wait, action, xpath, keys, n_tries)
 
+    run(nav, wait, dados, interact)
+    renomeia_notas(dados['Modelo_Nome'])
+
+
+def run(nav, wait, dados: Dict, interact: Callable) -> None:
     # Vai para o site do ISS Fortaleza
     nav.get(
         'https://idp2.sefin.fortaleza.ce.gov.br/realms/sefin/protocol/openid-connect/auth?nonce=5d91026e-7a08-412f-a50d-91cc2c2576c9&response_type=code&client_id=iss.sefin.fortaleza.ce.gov.br&redirect_uri=https%3A%2F%2Fiss.fortaleza.ce.gov.br%2Fgrpfor%2Foauth2%2Fcallback&scope=openid+profile&state=secret-eb17c44e-25ca-4b8c-bda8-46d8f4d5fee0')
@@ -33,7 +38,7 @@ def main() -> None:
         interact('clear', '//*[@id="password"]')  # Limpa a senha atual
         interact('write', '//*[@id="password"]', dados['SENHA'])
         # Clica em entrar
-        interact('click', '//*[@id="botao-entrar"]', n_tries=20)
+        interact('click', '//*[@id="botao-entrar"]', n_tries=10)
         sleep(1)
     # Aguarda o carregamento da página
     sleep(2)
@@ -92,22 +97,46 @@ def main() -> None:
         # Seleciona a situação 'Normal'.
         Select(nav.find_element('xpath', '//*[@id="servicos_prestados_form:comboStatusDocumento"]'
                                 )).select_by_visible_text('Normal')
-        # Seleciona a situação 'Normal'.
+        # Seleciona em 'Outros Filtros: ' a opção 'Dia'.
         Select(nav.find_element('xpath', '//*[@id="servicos_prestados_form:comboOutroFiltroSelecionado"]'
                                 )).select_by_visible_text('Dia')
-        # Clica em 'Pesquisar'.
-        interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
         # Preenche a data.
         interact('write', '//*[@id="servicos_prestados_form:dataInicialInputDate"]', dados['Data'])
+        # Clica em 'Pesquisar'.
+        interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
 
         espera_aparecer(nav, wait, '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]')
-        text = nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]').text
 
-        n_pags = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]').text.split())
-        next_button = nav.find_element('xpath', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{n_pags}]')
+        n_pags = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]').text.split()) - 5
+        button_next = f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{n_pags + 5}]'
 
-
-
+        # Clica em 'Encerramento'.
+        interact('click', '//*[@id="abaEncerramento_lbl"]')
+        for i in range(n_pags):
+            # Clica em 'Serviços Prestados'.
+            interact('click', '//*[@id="abaServicosPrestados_lbl"]')
+            # Clica em 'Pesquisar'.
+            interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
+            # Avança até a página correta.
+            for _ in range(i):
+                interact('click', button_next)
+            n_itens = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]').text.split('\n'))
+            # Clica em 'Encerramento'.
+            interact('click', '//*[@id="abaEncerramento_lbl"]')
+            for ii in range(n_itens):
+                # Clica em 'Serviços Prestados'.
+                interact('click', '//*[@id="abaServicosPrestados_lbl"]')
+                # Avança até a página correta.
+                for _ in range(i):
+                    interact('click', button_next)
+                # Clica no símbolo de lupa.
+                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10*i+ii}:j_id586"]/a/span')
+                # Pode acontecer de o clique na lupa não funcionar.
+                if interact('click', '//*[@id="j_id159:panelAcoes"]/tbody/tr/td[1]/input'):
+                    # Clica no símbolo de lupa.
+                    interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10 * i + ii}:j_id586"]/a/span')
+                # Clicaq em 'Voltar'.
+                interact('click', '//*[@id="j_id159:panelAcoes"]/tbody/tr/td[2]/input')
 
 
 def start_nav():
@@ -151,7 +180,7 @@ def _interact(nav, wait, action: str, xpath: str, keys: str = None, n_tries: int
     try:
         espera_aparecer(nav, wait, xpath)
     except NoSuchElementException:
-        print(xpath)
+        return xpath
     for try_i in range(n_tries):
         try:
             # Find the element
@@ -180,6 +209,21 @@ def _interact(nav, wait, action: str, xpath: str, keys: str = None, n_tries: int
                 pass
 
 
+def get_creds() -> Dict:
+    # Lê as credenciais de acesso
+    with open('config.txt', 'r') as file:
+        # Separa o arquivo por linha
+        dados = file.read().split('\n')
+        # Separa cada chave do seu valor
+        dados = [(linha.split('-->')[0], linha.split('-->')[1].strip()) for linha in dados]
+        # Cria um dicionário com os valores lidos
+        dados = {chave: valor for chave, valor in dados}
+        # Converte a data no modelo dd/mm/YYYY para uma variável do tipo datetime
+        dados['dia'] = datetime(int(dados['Data'][6:]), int(dados['Data'][3:5]), int(dados['Data'][:2]))
+        dados['mes'] = dados['Data'][3:5]
+        return dados
+
+
 def get_modelo_nome(opcao: str) -> str:
     modelos = {
         '1': '{nome} - {num_nf}.pdf',
@@ -195,19 +239,38 @@ def get_modelo_nome(opcao: str) -> str:
         return modelo
 
 
-def get_creds() -> Dict:
-    # Lê as credenciais de acesso
-    with open('config.txt', 'r') as file:
-        # Separa o arquivo por linha
-        dados = file.read().split('\n')
-        # Separa cada chave do seu valor
-        dados = [(linha.split('-->')[0], linha.split('-->')[1].strip()) for linha in dados]
-        # Cria um dicionário com os valores lidos
-        dados = {chave: valor for chave, valor in dados}
-        # Converte a data no modelo dd/mm/YYYY para uma variável do tipo datetime
-        dados['dia'] = datetime(int(dados['Data'][6:]), int(dados['Data'][3:5]), int(dados['Data'][:2]))
-        dados['mes'] = dados['Data'][3:5]
-        return dados
+def renomeia_notas(opcao: str):
+    modelo = get_modelo_nome(opcao)
+
+    notas = [nota for nota in os.listdir('notas') if '.pdf' in nota]
+    for nota in notas:
+        arq = f'notas/{nota}'
+
+        with open(arq, 'rb') as file:
+            # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
+            pdf_reader = PdfReader(file)
+            # Extrai o texto do PDF
+            rows = pdf_reader.pages[0].extract_text().split('\n')
+
+        num_nf = rows[4]
+        for row in rows:
+            if 'Regime especial Tributação' in row:
+                nome = row[26:].replace('/', '')
+                break
+        for row in rows:
+            if 'E-mail' in row:
+                empresa = row[row.rfind('E-mail') + 6:].replace('/', '')
+                break
+        nome_nota = modelo.format(num_nf=num_nf, nome=nome)
+        # Verifica se ja há uma pasta para esta empresa
+        if not os.path.exists(f'notas/{empresa}'):
+            os.mkdir(f'notas/{empresa}')
+        # Verifica se o arquivo já existe na pasta.
+        if not os.path.exists(f'notas/{empresa}/{nome_nota}'):
+            # Move o arquivo para a nova pasta
+            os.rename(arq, f'notas/{empresa}/{nome_nota}')
+        else:
+            os.remove(arq)
 
 
 
