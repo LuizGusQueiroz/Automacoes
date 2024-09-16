@@ -3,8 +3,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from datetime import datetime
 from PyPDF2 import PdfReader, PdfWriter
+from datetime import datetime
 from typing import List, Dict
 from tqdm import tqdm
 from PIL import Image
@@ -19,7 +19,7 @@ import os
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
-VERSION: str = '0.04.03'
+VERSION: str = '0.05.00'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -460,20 +460,20 @@ def folha_rescisao_ferias() -> int:  # 6
 
 
 def guias_fgts() -> int:  # 7
-    def get_de_para() -> pd.DataFrame:
+    def get_de_para() -> pd.DataFrame|None:
         files = [file for file in os.listdir() if '.xls' in file]
-        if len(files) != 1:
-            print('Tabela de clientes não encontrada.')
-            input()
-            exit()
+        if len(files) == 0:
+            return None
         df = pd.read_excel(files[0])
         df.columns = df.iloc[0]
         return df
 
-    clientes: pd.DataFrame = get_de_para()
+
+    clientes: pd.DataFrame|None = get_de_para()
+    tem_excel: bool = clientes is not None
     # Cria a pasta de destino dos recibos
-    if not os.path.exists('Guias'):
-        os.mkdir('Guias')
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
     tot_pags: int = 0
 
     for arq in [file for file in os.listdir() if '.pdf' in file]:
@@ -485,29 +485,49 @@ def guias_fgts() -> int:  # 7
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
 
-                if 'Tomador: ' in page[10]:
-                    cnpj = page[10][page[10].find('Tomador: '):][9:]
-                    if cnpj == 'Sem Tomador':
-                        continue
+                if tem_excel:
+                    if 'Tomador: ' in page[10]:
+                        cnpj = page[10][page[10].find('Tomador: '):][9:]
+                        if cnpj == 'Sem Tomador':
+                            continue
 
-                    nome = clientes['Nome'][clientes['Inscrição']==cnpj].values
-                    if len(nome) == 1:
-                        nome = nome[0].replace('/', '') + '.pdf'
-                    else:
-                        nome = '_NaoEncontrados.pdf'
+                            nome = clientes['Nome'][clientes['Inscrição']==cnpj].values
+                            if len(nome) == 1:
+                                nome = nome[0].replace('/', '') + '.pdf'
+                            else:
+                                nome = '_NaoEncontrados.pdf'
 
+                        pdf_writer = PdfWriter()
+                        # Adiciona a página atual ao objeto PdfWriter
+                        pdf_writer.add_page(page_pdf)
+
+                        # Verifica se o arquivo com este nome já existe, caso exista, junta-o com o novo arquivo
+                        if nome in os.listdir('Arquivos'):
+                            old_pdf = PdfReader(f'Arquivos/{nome}')
+                            for page in old_pdf.pages:
+                                pdf_writer.add_page(page)
+
+                        # Salva a página em um novo arquivo PDF
+                        with open(f'Arquivos/{nome}', 'wb') as output_file:
+                            pdf_writer.write(output_file)
+                else:
+                    for row in page:
+                        if 'Tomador: ' in row:
+                            cnpj = row[row.find('Tomador: ')+9:]
+                            nome = f'{cnpj.replace('/', '').replace('-', '').replace('.', '')}.pdf'
+                            break
                     pdf_writer = PdfWriter()
                     # Adiciona a página atual ao objeto PdfWriter
                     pdf_writer.add_page(page_pdf)
 
                     # Verifica se o arquivo com este nome já existe, caso exista, junta-o com o novo arquivo
-                    if nome in os.listdir('Guias'):
-                        old_pdf = PdfReader(f'Guias/{nome}')
+                    if nome in os.listdir('Arquivos'):
+                        old_pdf = PdfReader(f'Arquivos/{nome}')
                         for page in old_pdf.pages:
                             pdf_writer.add_page(page)
 
                     # Salva a página em um novo arquivo PDF
-                    with open(f'Guias/{nome}', 'wb') as output_file:
+                    with open(f'Arquivos/{nome}', 'wb') as output_file:
                         pdf_writer.write(output_file)
     return tot_pags
 
