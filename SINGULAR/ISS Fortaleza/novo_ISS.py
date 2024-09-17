@@ -4,6 +4,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.common.by import By
 from selenium.common.exceptions import *
 from selenium import webdriver
 from datetime import datetime
@@ -22,6 +23,7 @@ def main() -> None:
 
     run(nav, wait, dados, interact)
     renomeia_notas(dados['Modelo_Nome'])
+    atualiza_relatorio()
 
 
 def run(nav, wait, dados: Dict, interact: Callable) -> None:
@@ -108,8 +110,6 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
         espera_aparecer(nav, wait, '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]')
 
         n_pags = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]').text.split()) - 5
-        button_next = f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{n_pags + 5}]'
-
         # Clica em 'Encerramento'.
         interact('click', '//*[@id="abaEncerramento_lbl"]')
         for i in range(n_pags):
@@ -118,19 +118,21 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
             # Clica em 'Pesquisar'.
             interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
             # Avança até a página correta.
-            for _ in range(i):
-                interact('click', button_next)
+            interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{4+i}]')
             n_itens = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]').text.split('\n'))
             # Clica em 'Encerramento'.
             interact('click', '//*[@id="abaEncerramento_lbl"]')
             for ii in range(n_itens):
+                sleep(0.2)
                 # Clica em 'Serviços Prestados'.
                 interact('click', '//*[@id="abaServicosPrestados_lbl"]')
+                # Clica em 'Pesquisar'.
+                interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
                 # Avança até a página correta.
-                for _ in range(i):
-                    interact('click', button_next)
+                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{4+i}]')
                 # Clica no símbolo de lupa.
-                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10*i+ii}:j_id586"]/a/span')
+                if interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10*i+ii}:j_id586"]/a/span'):
+                    return  # Se o xpath for retornado, indica que acabou.
                 # Pode acontecer de o clique na lupa não funcionar.
                 if interact('click', '//*[@id="j_id159:panelAcoes"]/tbody/tr/td[1]/input'):
                     # Clica no símbolo de lupa.
@@ -154,7 +156,7 @@ def start_nav():
     return nav, wait
 
 
-def espera_aparecer(nav, wait, xpath: str, n: int = 20) -> None:
+def espera_aparecer(nav, wait, xpath: str, n: int = 10) -> None:
     """
     Espera n segundos até que determinado item esteja na tela.
     :param xpath: Uma string com o xpath do item que se deseja esperar aperecer.
@@ -162,13 +164,17 @@ def espera_aparecer(nav, wait, xpath: str, n: int = 20) -> None:
     """
     for _ in range(n):
         if nav.find_elements('xpath', xpath):
-            wait.until(EC.element_to_be_clickable(('xpath', xpath)))
+            try:
+                wait.until(EC.element_to_be_clickable(('xpath', xpath)))
+            except TimeoutException:
+                continue
+            sleep(0.1)
             return
         sleep(1)
     raise NoSuchElementException(f'{xpath} não encontrado em {n} segundos de espera')
 
 
-def _interact(nav, wait, action: str, xpath: str, keys: str = None, n_tries: int = 10) -> None:
+def _interact(nav, wait, action: str, xpath: str, keys: str = None, n_tries: int = 5) -> None:
     """
     Interage com determinado elemento na tela.
     Primeiro chama a função 'espera_aparecer' para não causar erro de Not Found.
@@ -207,6 +213,7 @@ def _interact(nav, wait, action: str, xpath: str, keys: str = None, n_tries: int
                 alert.dismiss()  # Recusa o alerta
             except NoAlertPresentException:
                 pass
+    return xpath
 
 
 def get_creds() -> Dict:
@@ -273,8 +280,42 @@ def renomeia_notas(opcao: str):
             os.remove(arq)
 
 
+def atualiza_relatorio() -> None:
+    if 'Relatorio.xlsx' not in os.listdir():
+        relatorio = pd.DataFrame(columns=['Empresa', 'Número NF', 'Emissão', 'Valor Líquido'])
+    else:
+        relatorio = pd.read_excel('Relatorio.xlsx')
 
-if __name__ == '__main__':
+    files: List[str] = []
+    for folder in os.listdir('notas'):
+        files += [f'notas/{folder}/{file}'
+                  for file in os.listdir(f'notas/{folder}')
+                  if '.pdf' in file]
+
+    for file in files:
+        with open(file, 'rb') as file_b:
+            pdf = PdfReader(file_b)
+            # Cada nota só tem uma página
+            rows = pdf.pages[0].extract_text().split('\n')
+
+        empresa = file[file.find('/')+1:file.rfind('/')]
+        num_nf = rows[4]
+        for row in rows:
+            if 'Local da Prestação' in row:
+                emissao = row[18:].split()[0]
+                break
+        for row in rows:
+            if 'Código ART' in row:
+                valor = row[:-10]
+                break
+
+        relatorio.loc[len(relatorio)] = [empresa, num_nf, emissao, valor]
+    relatorio.to_excel('Relatorio.xlsx', index=False)
+
+
+
+main()
+if __name__ == '__mai1n__':
     try:
         main()
     except Exception as e:
