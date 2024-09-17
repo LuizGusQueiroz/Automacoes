@@ -106,10 +106,10 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
         interact('write', '//*[@id="servicos_prestados_form:dataInicialInputDate"]', dados['Data'])
         # Clica em 'Pesquisar'.
         interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
-
+        # Aguarda o carregamento da pesquisa.
         espera_aparecer(nav, wait, '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]')
-
-        n_pags = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]').text.split()) - 5
+        sleep(2)
+        n_pags = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]').text.split()) - 4
         # Clica em 'Encerramento'.
         interact('click', '//*[@id="abaEncerramento_lbl"]')
         for i in range(n_pags):
@@ -119,6 +119,11 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
             interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
             # Avança até a página correta.
             interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{4+i}]')
+            # Aguarda o carregamento da página
+            sleep(0.1)
+            wait.until(EC.element_to_be_clickable(('xpath', '//*[@id="servicos_prestados_form:j_id512"]')))
+            sleep(0.5)
+            # Conta quantos itens há na página
             n_itens = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]').text.split('\n'))
             # Clica em 'Encerramento'.
             interact('click', '//*[@id="abaEncerramento_lbl"]')
@@ -131,8 +136,7 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
                 # Avança até a página correta.
                 interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{4+i}]')
                 # Clica no símbolo de lupa.
-                if interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10*i+ii}:j_id586"]/a/span'):
-                    return  # Se o xpath for retornado, indica que acabou.
+                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10*i+ii}:j_id586"]/a/span')
                 # Pode acontecer de o clique na lupa não funcionar.
                 if interact('click', '//*[@id="j_id159:panelAcoes"]/tbody/tr/td[1]/input'):
                     # Clica no símbolo de lupa.
@@ -153,6 +157,7 @@ def start_nav():
     })
     nav = webdriver.Chrome(service=Service(), options=options)
     wait = WebDriverWait(nav, 30)
+    driver.maximize_window()
     return nav, wait
 
 
@@ -167,6 +172,8 @@ def espera_aparecer(nav, wait, xpath: str, n: int = 10) -> None:
             try:
                 wait.until(EC.element_to_be_clickable(('xpath', xpath)))
             except TimeoutException:
+                continue
+            except NoSuchElementException:
                 continue
             sleep(0.1)
             return
@@ -183,10 +190,7 @@ def _interact(nav, wait, action: str, xpath: str, keys: str = None, n_tries: int
     actions = ['click', 'write', 'clear']
     if action not in actions:
         raise TypeError(f'{action} must be in {actions}')
-    try:
-        espera_aparecer(nav, wait, xpath)
-    except NoSuchElementException:
-        return xpath
+    espera_aparecer(nav, wait, xpath)
     for try_i in range(n_tries):
         try:
             # Find the element
