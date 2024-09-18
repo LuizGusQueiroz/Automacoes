@@ -6,11 +6,12 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import *
+from typing import List, Dict, Callable
 from selenium import webdriver
 from datetime import datetime
 from PyPDF2 import PdfReader
-from typing import List, Dict, Callable
 from time import sleep
+from tqdm import tqdm
 import pandas as pd
 import os
 
@@ -143,6 +144,8 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
                     interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10 * i + ii}:j_id586"]/a/span')
                 # Clicaq em 'Voltar'.
                 interact('click', '//*[@id="j_id159:panelAcoes"]/tbody/tr/td[2]/input')
+    sleep(3)  # Aguarda o fim do download da última nota.
+    nav.close()
 
 
 def start_nav():
@@ -157,7 +160,7 @@ def start_nav():
     })
     nav = webdriver.Chrome(service=Service(), options=options)
     wait = WebDriverWait(nav, 30)
-    driver.maximize_window()
+    nav.maximize_window()
     return nav, wait
 
 
@@ -251,10 +254,11 @@ def get_modelo_nome(opcao: str) -> str:
 
 
 def renomeia_notas(opcao: str):
+    print('Renomenaod notas...')
     modelo = get_modelo_nome(opcao)
 
     notas = [nota for nota in os.listdir('notas') if '.pdf' in nota]
-    for nota in notas:
+    for nota in tqdm(notas):
         arq = f'notas/{nota}'
 
         with open(arq, 'rb') as file:
