@@ -110,8 +110,8 @@ def main():
     # Clica em 'Filtrar'.
     interact('click', '//*[@id="nota_fiscal_search"]/div[2]/input')
     # Verifica quantas páginas existem
-    if nav.find_elements('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav'):
-        n_pags = int(nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav').text.split('\n')[-2])
+    if nav.find_elements('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav/ul'):
+        n_pags = int(nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div/nav/ul').text.split('\n')[-2])
     else:
         n_pags = 1
     # Indicador do fim das notas
@@ -121,7 +121,7 @@ def main():
         if n_pags > 1:
             # Guarda o botão de próxima página.
             next_page = nav.find_element(By.CSS_SELECTOR,
-            'body > div.wrapper > section > div > div.card.card-default > div > div > nav > ul > li.next.next_page.page-item > a')
+            'body > div.wrapper > section > div > div.card.card-default > div > div > nav > ul > li.next.next_page.page-item')
         # Conta quantas notas há na tabela
         table = nav.find_element('xpath', '/html/body/div[2]/section/div/div[3]/div/div').text.split('\n')[1:]
         for i, row in enumerate(table):
@@ -136,7 +136,7 @@ def main():
             data_i = datetime(int(data_i[6:]), int(data_i[3:5]), int(data_i[:2]))
             if data_i == data:
                 interact('click',
-                     f'/html/body/div[2]/section/div/div[3]/div/div/table/tbody/tr[{idx}]/td[11]/div/a[1]/button')
+                   f'/html/body/div[2]/section/div/div[3]/div/div/table/tbody/tr[{idx}]/td[12]/div/a[1]/button')
             elif data_i < data:
                 acabou = True
                 break
@@ -186,6 +186,7 @@ def main():
     nav.quit()
 
 
+main()
 if __name__ == '__main__':
     try:
         main()
