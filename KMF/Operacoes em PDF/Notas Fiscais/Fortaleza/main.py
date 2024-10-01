@@ -28,6 +28,16 @@ def main() -> None:
                     else:
                         nome = rows[i+1]
                         break
+        elif rows[0] == 'PREFEITURA MUNICIPAL DE FORTALEZA':
+            # modelo 3
+            for i, row in enumerate(rows):
+                if row == 'NFS-e':
+                    num_nf = rows[i+1]
+                    break
+            for row in rows:
+                if 'Regime especial Tributação' in row:
+                    nome = row[26:]
+                    break
         else:
             continue
 
