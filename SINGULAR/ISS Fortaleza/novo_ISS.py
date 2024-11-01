@@ -1,6 +1,5 @@
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import Select
@@ -97,6 +96,7 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
         interact('click', '//*[@id="manterEscrituracaoForm:dataTable:0:visualizar"]')
         # Clica em 'Serviços Prestados'.
         interact('click', '//*[@id="abaServicosPrestados_lbl"]')
+        sleep(1)
         # Seleciona a situação 'Normal'.
         Select(nav.find_element('xpath', '//*[@id="servicos_prestados_form:comboStatusDocumento"]'
                                 )).select_by_visible_text('Normal')
@@ -106,44 +106,86 @@ def run(nav, wait, dados: Dict, interact: Callable) -> None:
         # Preenche a data.
         interact('write', '//*[@id="servicos_prestados_form:dataInicialInputDate"]', dados['Data'])
         # Clica em 'Pesquisar'.
-        interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
+        interact('click', '//*[@id="servicos_prestados_form:j_id514"]')
         # Aguarda o carregamento da pesquisa.
+        wait.until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
         espera_aparecer(nav, wait, '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]')
-        sleep(2)
-        n_pags = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]').text.split()) - 4
+        # Conta quantas páginas tem pelo tamanho do rodapé.
+        n_pags = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]').text.split()) - 4
+        # Quando há apenas uma página, o índice não aparece, então fica com 0 páginas, este if corrige este caso.
+        n_pags = max(1, n_pags)
+        # Verifica se há páginas escondidas.
+        if n_pags == 10:
+            # Clica em '>> >>'
+            interact('click', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]/tbody/tr/td[16]')
+            # Aguarda o carregamento da pesquisa.
+            wait.until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+            sleep(0.5)
+            n_pags = int(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]').text.split()[-3])
+
         # Clica em 'Encerramento'.
         interact('click', '//*[@id="abaEncerramento_lbl"]')
         for i in range(n_pags):
             # Clica em 'Serviços Prestados'.
             interact('click', '//*[@id="abaServicosPrestados_lbl"]')
             # Clica em 'Pesquisar'.
-            interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
-            # Avança até a página correta.
-            interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{4+i}]')
+            interact('click', '//*[@id="servicos_prestados_form:j_id514"]')
+            if i < 10:
+                # Avança até a página correta.
+                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]/tbody/tr/td[{4+i}]')
+            else:
+                # Avança até a página 10.
+                interact('click',
+                         f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]/tbody/tr/td[{13}]')
+                for _ in range(i-9):
+                    # Clica em '>>'.
+                    interact('click', '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]/tbody/tr/td[15]')
+                    # Aguarda o carregamento da pesquisa.
+                    wait.until(EC.invisibility_of_element_located(
+                        (By.XPATH, '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+                    sleep(0.1)
             # Aguarda o carregamento da página
             sleep(0.1)
-            wait.until(EC.element_to_be_clickable(('xpath', '//*[@id="servicos_prestados_form:j_id512"]')))
+            wait.until(EC.element_to_be_clickable(('xpath', '//*[@id="servicos_prestados_form:j_id514"]')))
             sleep(0.5)
             # Conta quantos itens há na página
             n_itens = len(nav.find_element('xpath', '//*[@id="servicos_prestados_form:datatable_servico_prestado:tb"]').text.split('\n'))
             # Clica em 'Encerramento'.
             interact('click', '//*[@id="abaEncerramento_lbl"]')
             for ii in range(n_itens):
-                sleep(0.2)
+                sleep(1)
                 # Clica em 'Serviços Prestados'.
                 interact('click', '//*[@id="abaServicosPrestados_lbl"]')
                 # Clica em 'Pesquisar'.
-                interact('click', '//*[@id="servicos_prestados_form:j_id512"]')
-                # Avança até a página correta.
-                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id612_table"]/tbody/tr/td[{4+i}]')
+                interact('click', '//*[@id="servicos_prestados_form:j_id514"]')
+                if i < 10:
+                    # Avança até a página correta.
+                    interact('click',
+                             f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]/tbody/tr/td[{4 + i}]')
+                else:
+                    # Avança até a página 10.
+                    interact('click',
+                             f'//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]/tbody/tr/td[{13}]')
+                    for _ in range(i - 9):
+                        # Clica em '>>'.
+                        interact('click',
+                                 '//*[@id="servicos_prestados_form:datatable_servico_prestado:j_id614_table"]/tbody/tr/td[15]')
+                        # Aguarda o carregamento da pesquisa.
+                        wait.until(EC.invisibility_of_element_located(
+                            (By.XPATH, '//*[@id="mpProgressoContentTable"]/tbody/tr/td/div')))
+                        sleep(0.1)
                 # Clica no símbolo de lupa.
-                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10*i+ii}:j_id586"]/a/span')
-                # Pode acontecer de o clique na lupa não funcionar.
-                if interact('click', '//*[@id="j_id159:panelAcoes"]/tbody/tr/td[1]/input'):
+                interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10*i+ii}:j_id588"]/a/span')
+                try:
+                    # Clica em 'Exportar PDF'.
+                    interact('click', '//*[@id="j_id161:panelAcoes"]/tbody/tr/td[1]/input')
+                except Exception:  # Pode acontecer de o clique na lupa não funcionar.
                     # Clica no símbolo de lupa.
-                    interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10 * i + ii}:j_id586"]/a/span')
+                    interact('click', f'//*[@id="servicos_prestados_form:datatable_servico_prestado:{10 * i + ii}:j_id588"]/a/span')
+                    # Clica em 'Exportar PDF'.
+                    interact('click', '//*[@id="j_id161:panelAcoes"]/tbody/tr/td[1]/input')
                 # Clicaq em 'Voltar'.
-                interact('click', '//*[@id="j_id159:panelAcoes"]/tbody/tr/td[2]/input')
+                interact('click', '//*[@id="j_id161:panelAcoes"]/tbody/tr/td[2]/input')
     sleep(3)  # Aguarda o fim do download da última nota.
     nav.close()
 
@@ -254,7 +296,7 @@ def get_modelo_nome(opcao: str) -> str:
 
 
 def renomeia_notas(opcao: str):
-    print('Renomenaod notas...')
+    print('Renomeando notas...')
     modelo = get_modelo_nome(opcao)
 
     notas = [nota for nota in os.listdir('notas') if '.pdf' in nota]
@@ -321,9 +363,7 @@ def atualiza_relatorio() -> None:
     relatorio.to_excel('Relatorio.xlsx', index=False)
 
 
-
-main()
-if __name__ == '__mai1n__':
+if __name__ == '__main__':
     try:
         main()
     except Exception as e:
