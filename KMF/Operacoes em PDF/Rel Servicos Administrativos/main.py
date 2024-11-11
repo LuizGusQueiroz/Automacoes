@@ -18,12 +18,17 @@ def main():
                 rows = page.extract_text().split('\n')
 
                 lotacao = rows[0].replace('.', '').replace('/', '').replace('\\', '')[:-37]
-
+                # Remove os zeros à esquerda do código
+                try:
+                    codigo = int(lotacao.split()[0])
+                    lotacao = ' '.join(lotacao.split()[1:])
+                except IndexError:
+                    continue
                 pdf_writer = PdfWriter()
                 # Adiciona a página atual ao objeto PdfWriter
                 pdf_writer.add_page(page)
                 # Salva a página em um novo arquivo PDF
-                with open(f'Arquivos/{lotacao}.pdf', 'wb') as output_file:
+                with open(f'Arquivos/{codigo} {lotacao}.pdf', 'wb') as output_file:
                     pdf_writer.write(output_file)
 
 
