@@ -19,7 +19,7 @@ import os
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
-VERSION: str = '0.05.00'
+VERSION: str = '0.05.01'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -827,7 +827,7 @@ def nfs_fortaleza() -> int:  # 32
 
         if rows[0] == 'Número da':
             # Modelo 1
-            num_nf = rows[1][:4]
+            num_nf = ''.join(i for i in rows[1].split()[0] if i.isnumeric())
             for row in rows:
                 if 'Complemento:' in row:
                     nome = row[12:].strip()
