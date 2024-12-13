@@ -1,25 +1,25 @@
+from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
 from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
-from typing import List, Dict
+from typing import List
 from tqdm import tqdm
-from PIL import Image
-from sys import exit
 import pandas as pd
-import pytesseract
-import cv2 as cv
-import fitz
+import requests
 import json
 import time
+import sys
 import os
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Usuario\PycharmProjects\PyInstaller\tesseract.exe'
 
-VERSION: str = '0.05.01'
+# ===================================================================
+#                             Menus e Configurações
+# ===================================================================
+
+VERSION: str = '0.0.12'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -35,10 +35,8 @@ main_msg: str = '''
 10: Recibos FOLK 
 11: Relatório de Serviços Administrativos 
 12: Resumo Geral Mês/Período 
-31: NFs Curitiba
-32: NFs Fortaleza
-33: NFs Salvador
-34: NFs Sorocaba
+13: NFs Fortaleza
+14: Demonstrativo de Férias
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -48,7 +46,40 @@ options = list(range(100))
 def main():
     print('Manipulador de PDFs')
     print('V: ', VERSION)
+    check_update()  # Verifica se há atualizações.
     main_hub()  # inicia o menu.
+
+
+def check_update():
+    last_version = get_last_version()
+    if type(last_version) == str:
+        if VERSION != get_last_version():
+            print('Nova versão disponível!')
+            print('Para baixar a nova versão, feche e exclua este arquivo (main.py) e execute o arquivo "download_last_version" dentro da pasta "configs".')
+            input('Para continuar utilizando esta versão, pressione Enter')
+
+
+def get_last_version():
+    # Endpoint da API para buscar o histórico de commits de um arquivo específico
+    url = f"https://api.github.com/repos/LuizGusQueiroz/Automacoes/commits"
+    # Parâmetros da consulta, para buscar commits de um arquivo específico
+    params = {'path': "KMF/Operacoes em PDF/_Manipulador de PDF/main.exe"}
+    try:
+        # Envia a requisição GET para a API do GitHub
+        response = requests.get(url, params=params)
+        response.raise_for_status()  # Levanta uma exceção se houver um erro na requisição
+        # Extrai o JSON da resposta
+        commits_data = response.json()
+        if commits_data:
+            # A mensagem do commit mais recente está no primeiro item da lista
+            last_commit = commits_data[0]
+            commit_message = last_commit['commit']['message']
+            return commit_message
+        else:
+            return None
+    except requests.exceptions.RequestException:
+        return None
+
 
 
 def process_option(option: int) -> None:
@@ -96,22 +127,16 @@ def process_option(option: int) -> None:
     elif option == 12:
         n_pags = resumo_geral_mes_periodo()
         values = [[data, 'Resumo Geral Mês/Período', n_pags, time.time()-st]]
-    elif option == 31:
-        n_pags = nfs_curitiba()
-        values = [[data, 'NFs Curitiba', n_pags, time.time()-st]]
-    elif option == 32:
+    elif option == 13:
         n_pags = nfs_fortaleza()
         values = [[data, 'NFs Fortaleza', n_pags, time.time()-st]]
-    elif option == 33:
-        n_pags = nfs_salvador()
-        values = [[data, 'NFs Salvador', n_pags, time.time()-st]]
-    elif option == 34:
-        n_pags = nfs_sorocaba()
-        values = [[data, 'NFs Sorocaba', n_pags, time.time()-st]]
+    elif option == 14:
+        n_pags = demonstrativo_ferias()
+        values = [[data, 'Demonstrativo de Férias', n_pags, time.time()-st]]
+
 
     if option != 0:
         salva_relatorio(values)
-
 
 
 def main_hub():
@@ -200,6 +225,12 @@ def salva_relatorio(row: List[List]):
 
     except HttpError as err:
         print(err)
+
+
+
+# ===================================================================
+#                            Processamento de Arquivos
+# ===================================================================
 
 
 def documentos_admissao() -> int:  # 1
@@ -434,11 +465,11 @@ def folha_rescisao_ferias() -> int:  # 6
                 tipo = ' '.join(page[0].split()[:3])
                 # Verifica o tipo de arquivo
                 if tipo == 'Folha de Pagamento':
-                    lotacao_nova = page[5]
+                    lotacao_nova = page[6]
                 elif tipo == 'Listagem de Férias':
-                    lotacao_nova = page[4]
+                    lotacao_nova = page[5]
                 elif tipo == 'Listagem de Rescisão':
-                    lotacao_nova = page[4]
+                    lotacao_nova = page[5]
                 else:
                     print(tipo)
                     continue
@@ -722,99 +753,6 @@ def resumo_geral_mes_periodo() -> int:  # 12
     return tot_pags
 
 
-# ------------------------------------------------------------------------------------------
-#   Funções Relativas à leitura de imagens
-# ------------------------------------------------------------------------------------------
-
-
-def pdf_split(path: str) -> None:
-
-    with open(path, 'rb') as file:
-        pdf = PdfReader(file)
-        if len(pdf.pages) > 1:
-            for i, page in enumerate(pdf.pages):
-                writer = PdfWriter()
-                writer.add_page(page)
-                with open(f'{path[:-4]}-{i}.pdf', 'wb') as output:
-                    writer.write(output)
-
-
-def pdf_to_img(path: str, sizes: Dict, page: int = 0) -> None:
-
-    pdf_document = fitz.open(path)  # Abre a Nota Fiscal.
-    page = pdf_document.load_page(page)  # Carrega a página.
-    image = page.get_pixmap()  # Converte a página num objeto de imagem.
-    image.save('img.png')  # Salva a imagem num arquivo.
-    image = Image.open('img.png')
-    #                        l    u    r    d
-
-    if image.size in sizes:
-        nome = image.crop(sizes[image.size][0])
-        num_nf = image.crop(sizes[image.size][1])
-    else:
-        raise TypeError()
-    nome.save('nome.png')
-    num_nf.save('num_nf.png')
-
-
-def extract_text(path: str, config='--psm 10') -> str:
-    img = cv.imread(path)
-    scale_percent = 15  # Aumentar a imagem em 150%
-    # Calculando o novo tamanho
-    new_width = int(img.shape[1] * scale_percent)
-    new_height = int(img.shape[0] * scale_percent)
-    # Redimensionar a imagem proporcionalmente
-    img = cv.resize(img, (new_width, new_height), interpolation=cv.INTER_LANCZOS4)
-    # 1. Conversão para escala de cinza
-    img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
-    # Executar o OCR na imagem processada
-    text = pytesseract.image_to_string(img, config=config)
-    return text
-
-
-def processa_nf(cidade: str) -> int:
-    if cidade == 'Curitiba':
-        sizes = {
-            (612, 792): [(125, 240, 350, 255), (505, 52, 535, 63)],
-            (595, 842): [(110, 235, 380, 255), (520, 30, 550, 45)]
-        }
-    elif cidade == 'Salvador':
-        sizes = {
-            (595, 842): [(10, 198, 250, 208), (445, 22, 500, 32)]
-        }
-    elif cidade == 'Sorocaba':
-        sizes = {
-            (595, 842): [(135, 300, 370, 310), (260, 108, 276, 116)]
-        }
-    else:
-        raise TypeError('Cidade não cadastrada.')
-    tot_pags: int = 0
-
-    files = [file for file in os.listdir() if '.pdf' in file.lower()]
-    for file in files:
-        with open(file, 'rb') as file_b:
-            tot_pags += len(PdfReader(file_b).pages)
-        pdf_split(file)
-    files = [file for file in os.listdir() if '.pdf' in file.lower()]
-    for file in tqdm(files):
-        try:
-            pdf_to_img(file, sizes)
-        except TypeError:
-            continue
-        nome: str = extract_text('nome.png', config='--psm 7').strip()
-        num_nf: str = extract_text('num_nf.png', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
-        os.rename(file, f'NF {num_nf[-4:]} - {nome}.pdf')
-    # Apaga as imagens residuais.
-    os.remove('img.png')
-    os.remove('nome.png')
-    os.remove('num_nf.png')
-    return tot_pags
-
-
-def nfs_curitiba()  -> int:  # 31
-    return processa_nf('Curitiba')
-
-
 def nfs_fortaleza() -> int:  # 32
     tot_pags: int = 0
 
@@ -850,12 +788,32 @@ def nfs_fortaleza() -> int:  # 32
     return tot_pags
 
 
-def nfs_salvador() -> int:  # 33
-    return processa_nf('Salvador')
-
-
-def nfs_sorocaba() -> int:  # 34
-    return processa_nf('Sorocaba')
+def demonstrativo_ferias() -> int:
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+    n_pags = 0
+    files = [file for file in os.listdir() if '.pdf' in file]
+    for file in files:
+        with open(file, 'rb') as file:
+            pdf_reader = PdfReader(file)
+            n_pags = len(pdf_reader.pages)
+            for page in tqdm(pdf_reader.pages):
+                rows = page.extract_text().split()
+                start = 4
+                for i, row in enumerate(rows):
+                    if row in ['LTDA', 'S/A', 'BEM-TE-VI', 'CONDOMINIOS', 'Ltda', 'REMOTA',
+                               'EIRELI', 'ME', 'PINHO', 'EMPRESARIAL', 'S.A.']:
+                        start = i + 1
+                        break
+                for i, row in enumerate(rows):
+                    if 'DEMONSTRATIVO' in row:
+                        nome = ' '.join(rows[start:i]+[row[:-13]])
+                        break
+                pdf_writer = PdfWriter()
+                pdf_writer.add_page(page)
+                with open(f'Arquivos/{nome}.pdf', 'wb') as output:
+                    pdf_writer.write(output)
+    return n_pags
 
 
 if __name__ == '__main__':
