@@ -343,6 +343,7 @@ def atualiza_relatorio() -> None:
                   if '.pdf' in file]
 
     for file in files:
+    
         with open(file, 'rb') as file_b:
             pdf = PdfReader(file_b)
             # Cada nota só tem uma página
