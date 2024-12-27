@@ -4,7 +4,7 @@ import os
 
 
 def main():
-    if not os.path.exists('Arquivos'):
+   if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in files:
@@ -17,7 +17,6 @@ def main():
                 writer.add_page(page)
                 with open(f'Arquivos/{nome}.pdf', 'wb') as output:
                     writer.write(output)
-
 
 
 if __name__ == '__main__':
