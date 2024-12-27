@@ -18,7 +18,7 @@ def main() -> None:
             for page in tqdm(pdf.pages):
                 rows = page.extract_text().split('\n')
                 for row in rows:
-                    if 'Centro Custo' in row:
+                    if 'C Custo' in row:
                         novo_centro_custo = row.split(': ')[-1].replace('/', '')
                         novo_codigo = row.split(': ')[2][:-9]
                         break
