@@ -16,7 +16,7 @@ def main() -> None:
 def run(nav, wait, chamados: pd.DataFrame, sleep_time: float = 0.5) -> None:
     for i in range(len(chamados)):
         nav.get(chamados['LINK URL'].iloc[i])
-        sleep(5)
+        sleep(2)
         pyautogui.moveTo(0, pyautogui.size()[1] // 2)
         pyautogui.click()
         for column in chamados.columns[1:]:
@@ -39,11 +39,10 @@ def get_chamados() -> pd.DataFrame:
     files = [file for file in os.listdir() if '.xlsx' in file]
     for file in files:
         df = pd.read_excel(file).fillna('')
-        if list(df.columns) == ['LINK URL', 'CLIENTE', 'CENTRO DE CUSTO', 'COMPETÊNCIA',
+        if list(df.columns) == ['LINK URL', 'CLIENTE', 'CENTRO DE CUSTO', 'CÓDIGO', 'COMPETÊNCIA',
                                 'DOCUMENTAÇÃO DP', 'DOCUMENTAÇÃO FINANCEIRO CP',
                                 'DOCUMENTAÇÃO FINANCEIRO CR', 'DOCUMENTAÇÃO MOP',
-                                'DOCUMENTAÇÃO OPERAÇÃO', 'DOCUMENTAÇÃO BENEFÍCIOS',
-                                'SETORES PARA ANEXA DOCUMENTO']:
+                                'DOCUMENTAÇÃO OPERAÇÃO', 'DOCUMENTAÇÃO BENEFÍCIOS']:
             df['COMPETÊNCIA'] = df['COMPETÊNCIA'].apply(lambda x: x.strftime('%m/%Y'))
             return df
     raise Exception('Tabela de chamados não encontrada.')
