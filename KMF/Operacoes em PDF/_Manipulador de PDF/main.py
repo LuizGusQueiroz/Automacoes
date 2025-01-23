@@ -8,10 +8,10 @@ from datetime import datetime
 from typing import List
 from tqdm import tqdm
 import pandas as pd
+import openpyxl
 import requests
 import json
 import time
-import xlrd
 import os
 
 
