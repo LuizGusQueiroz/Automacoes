@@ -11,7 +11,7 @@ import pandas as pd
 import requests
 import json
 import time
-import sys
+import xlrd
 import os
 
 
@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.0.12'
+VERSION: str = '0.0.13'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -29,7 +29,7 @@ main_msg: str = '''
  4: Boletos de Cobrança 
  5: Fichas de Registro 
  6: Folha de Pagamento, Férias e Rescisão 
- 7: Guias FGTS 
+ 7: re FGTS 
  8: Listagem de Conferência 
  9: Recibos de Pagamento 
 10: Recibos FOLK 
@@ -449,8 +449,8 @@ def fichas_de_registro() -> int:  # 5
 
 def folha_rescisao_ferias() -> int:  # 6
     # Cria a pasta de destino dos recibos
-    if not os.path.exists('Arquivos'):
-        os.mkdir('Arquivos')
+    if not os.path.exists('Folhas de Pagamento'):
+        os.mkdir('Folhas de Pagamento')
     tot_pags: int = 0
 
     for arq in [file for file in os.listdir() if '.pdf' in file]:
@@ -474,13 +474,13 @@ def folha_rescisao_ferias() -> int:  # 6
                     print(tipo)
                     continue
                 # Verifica se já há umas pasta para o tipo
-                if not os.path.exists(f'Arquivos/{tipo}'):
-                    os.mkdir(f'Arquivos/{tipo}')
+                if not os.path.exists(f'Folhas de Pagamento/{tipo}'):
+                    os.mkdir(f'Folhas de Pagamento/{tipo}')
                 # Verifica se está na página de resumo ou se a lotacao for a mesma, se sim,
                 # junta as páginas, caso contrário, salva o arquivo atual e cria um pdf novo.
                 if 'Total Geral ' in lotacao_nova or lotacao_nova != lotacao:
                     if pdf_writer.pages:
-                        with open(f'Arquivos/{tipo}/{lotacao.replace('/', '')}.pdf', 'wb') as output_file:
+                        with open(f'Folhas de Pagamento/{tipo}/{lotacao.replace('/', '')}.pdf', 'wb') as output_file:
                             pdf_writer.write(output_file)
                         pdf_writer = PdfWriter()
                     lotacao = lotacao_nova
@@ -503,8 +503,8 @@ def guias_fgts() -> int:  # 7
     clientes: pd.DataFrame|None = get_de_para()
     tem_excel: bool = clientes is not None
     # Cria a pasta de destino dos recibos
-    if not os.path.exists('Arquivos'):
-        os.mkdir('Arquivos')
+    if not os.path.exists('Arquivos do fgts'):
+        os.mkdir('Arquivos do fgts')
     tot_pags: int = 0
 
     for arq in [file for file in os.listdir() if '.pdf' in file]:
@@ -533,13 +533,13 @@ def guias_fgts() -> int:  # 7
                         pdf_writer.add_page(page_pdf)
 
                         # Verifica se o arquivo com este nome já existe, caso exista, junta-o com o novo arquivo
-                        if nome in os.listdir('Arquivos'):
-                            old_pdf = PdfReader(f'Arquivos/{nome}')
+                        if nome in os.listdir('Arquivos do fgts'):
+                            old_pdf = PdfReader(f'Arquivos do fgts/{nome}')
                             for page in old_pdf.pages:
                                 pdf_writer.add_page(page)
 
                         # Salva a página em um novo arquivo PDF
-                        with open(f'Arquivos/{nome}', 'wb') as output_file:
+                        with open(f'Arquivos do fgts/{nome}', 'wb') as output_file:
                             pdf_writer.write(output_file)
                 else:
                     for row in page:
@@ -552,13 +552,13 @@ def guias_fgts() -> int:  # 7
                     pdf_writer.add_page(page_pdf)
 
                     # Verifica se o arquivo com este nome já existe, caso exista, junta-o com o novo arquivo
-                    if nome in os.listdir('Arquivos'):
-                        old_pdf = PdfReader(f'Arquivos/{nome}')
+                    if nome in os.listdir('Arquivos do fgts'):
+                        old_pdf = PdfReader(f'Arquivos do fgts/{nome}')
                         for page in old_pdf.pages:
                             pdf_writer.add_page(page)
 
                     # Salva a página em um novo arquivo PDF
-                    with open(f'Arquivos/{nome}', 'wb') as output_file:
+                    with open(f'Arquivos do fgts/{nome}', 'wb') as output_file:
                         pdf_writer.write(output_file)
     return tot_pags
 
@@ -605,8 +605,8 @@ def listagem_conferencia() -> int:  # 8
 
 def recibos_pagamento() -> int:  # 9
     # Cria a pasta de destino dos recibos
-    if not os.path.exists('Arquivos'):
-        os.mkdir('Arquivos')
+    if not os.path.exists('Recibos de Pagamento'):
+        os.mkdir('Recibos de Pagamento')
     tot_pags: int = 0
 
     escolha = ''
@@ -631,7 +631,7 @@ def recibos_pagamento() -> int:  # 9
                     nome = rows[11]
                     # Acessa a linha que contém a lotação do empregado.
                     lotacao = rows[9][:-5]
-                    file_name = f'Arquivos\\{lotacao}-{nome}.pdf'.replace('/', '')
+                    file_name = f'Recibos de Pagamento\\{lotacao}-{nome}.pdf'.replace('/', '')
                     pdf_writer = PdfWriter()
                     # Adiciona a página atual ao objeto PdfWriter
                     pdf_writer.add_page(pag)
@@ -645,7 +645,7 @@ def recibos_pagamento() -> int:  # 9
                     rows = pag.extract_text().split('\n')
                     lotacao = rows[9][:-5]
 
-                    file_name = f'Arquivos\\{lotacao}.pdf'.replace('/', '')
+                    file_name = f'Recibos de Pagamento\\{lotacao}.pdf'.replace('/', '')
                     pdf_writer = PdfWriter()
                     # Verifica se já existe um arquivo para esta lotação.
                     if os.path.exists(file_name):
