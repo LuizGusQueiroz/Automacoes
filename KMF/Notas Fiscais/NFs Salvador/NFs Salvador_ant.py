@@ -13,7 +13,7 @@ from time import sleep
 import requests
 
 # Inicializa o navegador
-service = Service(ChromeDriverManager().install())
+service = Service()
 
 options = Options()
 options.add_experimental_option("prefs", {
@@ -97,6 +97,7 @@ def run():
         interact('write', '//*[@id="tbCaptcha"]', '')
         sleep(1)
 
+    espera_aparecer('//*[@id="menu-lateral"]/li[4]/a', 50)
     # Clica em 'Consultar NFS-e'
     interact('click', '//*[@id="menu-lateral"]/li[4]/a')
     # Escolhe a competência desejada.
