@@ -86,7 +86,6 @@ class Escriturador:
         self.login()
         self.seleciona_inscricao()
         self.emite_nf('15741787000110')
-
         sleep(50)
 
     def login(self):
