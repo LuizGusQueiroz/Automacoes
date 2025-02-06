@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.1.0'
+VERSION: str = '0.1.1'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -390,8 +390,8 @@ def boletos_bmp() -> int:  # 3
 
 def boletos_cobranca() -> int:  # 4
     # Cria a pasta de destino dos recibos
-    # if not os.path.exists('Arquivos'):
-    #     os.mkdir('Arquivos')
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
     tot_pags: int = 0
     # Itera por todos os arquivos .pdf.
     for arq in [file for file in os.listdir() if '.pdf' in file]:
@@ -407,8 +407,11 @@ def boletos_cobranca() -> int:  # 4
                         condominio = row[row.rfind(':') + 2:]
                         cnpj = ''.join(char for char in page[i + 1] if char.isnumeric())
                         break
-                nome_arq = f'{condominio}-{cnpj}.pdf'
-        os.rename(arq, nome_arq)
+                nome_arq = f'Arquivos/{condominio}-{cnpj}.pdf'
+                writer = PdfWriter()
+                writer.addPage(page_pdf)
+                with open(nome_arq, 'wb') as output:
+                    writer.write(output)
     return tot_pags
 
 
