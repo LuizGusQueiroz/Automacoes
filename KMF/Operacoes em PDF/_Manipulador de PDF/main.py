@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.0.15'
+VERSION: str = '0.0.16'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -386,10 +386,9 @@ def boletos_bmp() -> int:  # 3
 
 def boletos_cobranca() -> int:  # 4
     # Cria a pasta de destino dos recibos
-    if not os.path.exists('Arquivos'):
-        os.mkdir('Arquivos')
+    # if not os.path.exists('Arquivos'):
+    #     os.mkdir('Arquivos')
     tot_pags: int = 0
-
     # Itera por todos os arquivos .pdf.
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
@@ -404,19 +403,8 @@ def boletos_cobranca() -> int:  # 4
                         condominio = row[row.rfind(':') + 2:]
                         cnpj = ''.join(char for char in page[i + 1] if char.isnumeric())
                         break
-                for row in page:
-                    if 'Boleto referente:' in row:
-                        numero = row[row.find(':') + 1:row.find('/', row.find(' '))]
-                        if len(numero) > 20:
-                            numero = row[row.rfind(' ') + 1:row.rfind('/')]
-                        break
-                nome_arq = f'{condominio}-{numero}.pdf'
-                pdf_writer = PdfWriter()
-                # Adiciona a página atual ao objeto PdfWriter
-                pdf_writer.add_page(page_pdf)
-                # Salva a página em um novo arquivo PDF.
-                with open(f'Arquivos\\{nome_arq}', 'wb') as output_file:
-                    pdf_writer.write(output_file)
+                nome_arq = f'{condominio}-{cnpj}.pdf'
+        os.rename(arq, nome_arq)
     return tot_pags
 
 
