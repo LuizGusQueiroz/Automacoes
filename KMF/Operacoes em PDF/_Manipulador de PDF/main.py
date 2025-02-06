@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.1.1'
+VERSION: str = '0.1.2'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -409,7 +409,7 @@ def boletos_cobranca() -> int:  # 4
                         break
                 nome_arq = f'Arquivos/{condominio}-{cnpj}.pdf'
                 writer = PdfWriter()
-                writer.addPage(page_pdf)
+                writer.add_page(page_pdf)
                 with open(nome_arq, 'wb') as output:
                     writer.write(output)
     return tot_pags
