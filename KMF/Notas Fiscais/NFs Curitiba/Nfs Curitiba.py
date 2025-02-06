@@ -6,13 +6,12 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import *
 from selenium import webdriver
-from typing import List, Dict
 from PyPDF2 import PdfReader
 from time import sleep
 from PIL import Image
 import pyautogui
-import requests
 import base64
+import sys
 import os
 
 
@@ -105,7 +104,8 @@ class Automacao:
         self.get_nomes()
         self.get_links()
         self.download_nfs()
-        sleep(5)
+        sleep(3)
+        self.nav.close()
 
     def init_dir(self):
         if not os.path.exists('Notas'):
@@ -175,9 +175,27 @@ class Automacao:
         # Clica fora da tela aberta, para fecha-la.
         pyautogui.moveTo(50, 300)
         pyautogui.click()
+        # Verifica se o Pdf foi baixado.
+        if not [file for file in os.listdir() if '.pdf' in file.lower()]:
+            # Clica em 'Gerar Relatório'.
+            self.click('//*[@id="btnContainerNfse"]/div/a[3]')
+            sleep(2)
+            # Clica fora da tela aberta, para fecha-la.
+            pyautogui.moveTo(50, 300)
+            pyautogui.click()
         # Clica em 'Gerar Links NFS-e'.
         self.click('//*[@id="btnContainerNfse"]/div/a[2]')
         sleep(1)
+        # Verifica se o txt foi baixado.
+        if len([file for file in os.listdir() if '.txt' in file.lower()]) == 1:
+            # Clica fora da tela aberta, para fecha-la.
+            pyautogui.moveTo(50, 300)
+            pyautogui.click()
+            # Clica em 'Gerar Links NFS-e'.
+            self.click('//*[@id="btnContainerNfse"]/div/a[2]')
+            sleep(1)
+
+
 
     def get_nomes(self) -> None:
         """
@@ -248,8 +266,13 @@ class Automacao:
         os.remove('Notas/nf.jpg')
 
 
-
-
 if __name__ == '__main__':
-    aut = Automacao()
-    aut.run()
+    try:
+        aut = Automacao()
+        aut.run()
+    except:
+        # Apaga arquivos pdf e txt que restaram.
+        files = [file for file in os.listdir()
+                 if ('.pdf' in file.lower() or '.txt' in file.lower())
+                 and file not in ['config.txt']]
+    sys.exit()
