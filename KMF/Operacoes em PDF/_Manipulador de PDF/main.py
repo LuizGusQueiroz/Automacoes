@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.0.16'
+VERSION: str = '0.1.0'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -37,6 +37,7 @@ main_msg: str = '''
 12: Resumo Geral Mês/Período 
 13: NFs Fortaleza
 14: Demonstrativo de Férias
+15: NFs Eusébio
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -132,6 +133,9 @@ def process_option(option: int) -> None:
     elif option == 14:
         n_pags = demonstrativo_ferias()
         values = [[data, 'Demonstrativo de Férias', n_pags, time.time()-st]]
+    elif option == 15:
+        n_pags = nfs_eusebio()
+        values = [[data, 'NFs Eusébio', n_pags, time.time()-st]]
 
 
     if option != 0:
@@ -802,6 +806,21 @@ def demonstrativo_ferias() -> int:
                 pdf_writer.add_page(page)
                 with open(f'Arquivos/{nome}.pdf', 'wb') as output:
                     pdf_writer.write(output)
+    return n_pags
+
+def nfs_eusebio() -> int:
+    n_pags = 0
+    files = [file for file in os.listdir() if '.pdf' in file]
+
+    for file in tqdm(files):
+        with open(file, 'rb') as file_b:
+            pdf = PdfReader(file_b)
+            n_pags += len(pdf.pages)
+            rows = pdf.pages[0].extract_text().split('\n')
+            nome = rows[-3].split('Endereço')[-1]
+            cnpj = ''.join([char for char in rows[-1].split()[0] if char.isnumeric()])
+            nome_arq = f'{nome}-{cnpj}.pdf'
+        os.rename(file, nome_arq)
     return n_pags
 
 
