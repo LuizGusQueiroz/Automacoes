@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.0.14'
+VERSION: str = '0.0.15'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -762,9 +762,9 @@ def nfs_fortaleza() -> int:  # 32
             pdf = PdfReader(file_b).pages[0]
             rows = pdf.extract_text().split('\n')
             tot_pags += len(PdfReader(file_b).pages)
-
         if rows[0] == 'Número da':
             # Modelo 1
+            cnpj = ' ERRO '
             num_nf = ''.join(i for i in rows[1].split()[0] if i.isnumeric())
             for row in rows:
                 if 'Complemento:' in row:
@@ -781,10 +781,11 @@ def nfs_fortaleza() -> int:  # 32
                         primeiro = False
                     else:
                         nome = rows[i + 1]
+                        cnpj = ''.join([char for char in rows[i + 3] if char.isnumeric()])
                         break
         else:
             continue
-        os.rename(file, f'NF {num_nf} - {nome}.pdf')
+        os.rename(file, f'NF {nome}-{cnpj}.pdf')
     return tot_pags
 
 
