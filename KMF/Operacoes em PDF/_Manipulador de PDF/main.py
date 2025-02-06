@@ -400,9 +400,10 @@ def boletos_cobranca() -> int:  # 4
             # Itera sobre todas as páginas do PDF
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
-                for row in page:
+                for i, row in enumerate(page):
                     if 'UF:CEP:Data Vencimento: ' in row:
                         condominio = row[row.rfind(':') + 2:]
+                        cnpj = ''.join(char for char in page[i + 1] if char.isnumeric())
                         break
                 for row in page:
                     if 'Boleto referente:' in row:
