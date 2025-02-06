@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.0.13'
+VERSION: str = '0.0.14'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -40,8 +40,7 @@ main_msg: str = '''
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
-#options: List[int] = list(range(len(main_msg.split('\n')) + 1))
-options = list(range(100))
+options: List[int] = list(range(len(main_msg.split('\n')) + 1))
 
 def main():
     print('Manipulador de PDFs')
