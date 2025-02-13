@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.1.2'
+VERSION: str = '0.1.3'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -788,7 +788,7 @@ def demonstrativo_ferias() -> int:
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
     n_pags = 0
-    files = [file for file in os.listdir() if '.pdf' in file]
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in files:
         with open(file, 'rb') as file:
             pdf_reader = PdfReader(file)
@@ -813,7 +813,7 @@ def demonstrativo_ferias() -> int:
 
 def nfs_eusebio() -> int:
     n_pags = 0
-    files = [file for file in os.listdir() if '.pdf' in file]
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
 
     for file in tqdm(files):
         with open(file, 'rb') as file_b:
