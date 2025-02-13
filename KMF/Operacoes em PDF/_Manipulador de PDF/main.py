@@ -183,7 +183,7 @@ def help_doc(option: int) -> None:
 
 
 def limpa_terminal() -> None:
-    print('\n' * 30)
+    print('\n' * 35)
 
 
 def salva_relatorio(row: List[List]):
