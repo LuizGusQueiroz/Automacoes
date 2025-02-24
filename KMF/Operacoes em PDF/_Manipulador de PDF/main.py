@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.1.3'
+VERSION: str = '0.2.0'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -38,6 +38,7 @@ main_msg: str = '''
 13: NFs Fortaleza
 14: Demonstrativo de Férias
 15: NFs Eusébio
+16: Cartas Singular
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -136,6 +137,9 @@ def process_option(option: int) -> None:
     elif option == 15:
         n_pags = nfs_eusebio()
         values = [[data, 'NFs Eusébio', n_pags, time.time()-st]]
+    elif option == 16:
+        n_pags = cartas_singular()
+        values = [[data, 'Cartas Singular', n_pags, time.time()-st]]
 
 
     if option != 0:
@@ -824,6 +828,30 @@ def nfs_eusebio() -> int:
             cnpj = ''.join([char for char in rows[-1].split()[0] if char.isnumeric()])
             nome_arq = f'{nome}-{cnpj}.pdf'
         os.rename(file, nome_arq)
+    return n_pags
+
+
+def cartas_singular():
+    n_pags = 0
+    if not os.path.exists('Cartas'):
+        os.mkdir('Cartas')
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
+
+    for file in files:
+        writer = PdfWriter()
+        primeiro = True
+        with open(file, 'rb') as file_b:
+            pdf = PdfReader(file_b)
+            n_pags += len(pdf.pages)
+            for page in tqdm(pdf.pages):
+                rows = page.extract_text().split('\n')
+                nome = rows[1].replace('/', '')
+                if rows[0] == 'Prezados, ' and not primeiro:
+                    with open(f'Cartas/{nome}.pdf', 'wb') as output:
+                        writer.write(output)
+                    writer = PdfWriter()
+                writer.add_page(page)
+                primeiro = False
     return n_pags
 
 
