@@ -26,7 +26,7 @@ def main() -> None:
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
                 # Acessa a lotação
-                lotacao_nova = page[5]
+                lotacao_nova = page[6]
                 # Verifica se a lotação é a mesma, se for, junta as páginas,
                 # caso contrário, salva o arquivo atual e cria um pdf novo.
                 if lotacao_nova != lotacao:
