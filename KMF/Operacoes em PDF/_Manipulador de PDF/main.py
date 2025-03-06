@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.2.1'
+VERSION: str = '0.3.0'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -39,6 +39,7 @@ main_msg: str = '''
 14: Demonstrativo de Férias
 15: NFs Eusébio
 16: Cartas Singular
+17: Rendimentos
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -94,55 +95,59 @@ def process_option(option: int) -> None:
         info_hub()
     elif option == 1:
         n_pags = documentos_admissao()
-        values = [[data, 'Documentos de Admissão', n_pags, time.time()-st]]
+        tipo = 'Documentos de Admissão'
     elif option == 2:
         n_pags = documentos_rescisao()
-        values = [[data, 'Documentos de Rescisão', n_pags, time.time()-st]]
+        tipo = 'Documentos de Rescisão'
     elif option == 3:
         n_pags = boletos_bmp()
-        values = [[data, 'Boletos BMP', n_pags, time.time()-st]]
+        tipo = 'Boletos BMP'
     elif option == 4:
         n_pags = boletos_cobranca()
-        values = [[data, 'Boletos de Cobrança', n_pags, time.time()-st]]
+        tipo = 'Boletos de Cobrança'
     elif option == 5:
         n_pags = fichas_de_registro()
-        values = [[data, 'Fichas de Registro', n_pags, time.time()-st]]
+        tipo = 'Fichas de Registro'
     elif option == 6:
         n_pags = folha_rescisao_ferias()
-        values = [[data, 'Folha de Pagamento, Férias e Rescisão', n_pags, time.time()-st]]
+        tipo = 'Folha de Pagamento, Férias e Rescisão'
     elif option == 7:
         n_pags = guias_fgts()
-        values = [[data, 'Guias FGTS', n_pags, time.time()-st]]
+        tipo = 'Guias FGTS'
     elif option == 8:
         n_pags = listagem_conferencia()
-        values = [[data, 'Listagem de Conferência', n_pags, time.time()-st]]
+        tipo = 'Listagem de Conferência'
     elif option == 9:
         n_pags = recibos_pagamento()
-        values = [[data, 'Recibos de Pagamento', n_pags, time.time()-st]]
+        tipo = 'Recibos de Pagamento'
     elif option == 10:
         n_pags = recibos_folk()
-        values = [[data, 'Recibos FOLK', n_pags, time.time()-st]]
+        tipo = 'Recibos FOLK'
     elif option == 11:
         n_pags = rel_servicos_adm()
-        values = [[data, 'Relatório de Serviços Administrativos', n_pags, time.time()-st]]
+        tipo = 'Relatório de Serviços Administrativos'
     elif option == 12:
         n_pags = resumo_geral_mes_periodo()
-        values = [[data, 'Resumo Geral Mês/Período', n_pags, time.time()-st]]
+        tipo = 'Resumo Geral Mês/Período'
     elif option == 13:
         n_pags = nfs_fortaleza()
-        values = [[data, 'NFs Fortaleza', n_pags, time.time()-st]]
+        tipo = 'NFs Fortaleza'
     elif option == 14:
         n_pags = demonstrativo_ferias()
-        values = [[data, 'Demonstrativo de Férias', n_pags, time.time()-st]]
+        tipo = 'Demonstrativo de Férias'
     elif option == 15:
         n_pags = nfs_eusebio()
-        values = [[data, 'NFs Eusébio', n_pags, time.time()-st]]
+        tipo = 'NFs Eusébio'
     elif option == 16:
         n_pags = cartas_singular()
-        values = [[data, 'Cartas Singular', n_pags, time.time()-st]]
+        tipo = 'Cartas Singular'
+    elif option == 17:
+        n_pags = rendimentos()
+        tipo = 'Rendimentos'
 
 
     if option != 0:
+        values = [[data, tipo, n_pags, time.time()-st]]
         salva_relatorio(values)
 
 
@@ -853,6 +858,35 @@ def cartas_singular():
                 writer.add_page(page)
                 primeiro = False
     return n_pags
+
+
+def rendimentos() -> int:
+    tot_pags = 0
+    files = [file for file in os.listdir() if '.pdf' in file]
+    writer = PdfWriter()
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+    for file in files:
+        with (open(file, 'rb') as file_b):
+            pdf = PdfReader(file_b)
+            tot_pags += len(pdf.pages)
+            for page in tqdm(pdf.pages):
+                rows = page.extract_text().split('\n')
+                if len(rows) == 1:
+                    continue
+                for i, row in enumerate(rows):
+                    if ' CPF' in row:
+                        row = row.split()
+                        cpf = row[2]
+                        nome = ' '.join(row[5:-1])
+                        break
+                writer.add_page(page)
+                if len(writer.pages) == 2:
+                    file_name = f'Arquivos/{nome}-{cpf}.pdf'
+                    with open(file_name, 'wb') as output:
+                        writer.write(output)
+                    writer = PdfWriter()
+    return tot_pags
 
 
 if __name__ == '__main__':
