@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.3.1'
+VERSION: str = '0.4.0'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -40,6 +40,7 @@ main_msg: str = '''
 15: NFs Eusébio
 16: Cartas Singular
 17: Rendimentos Protheus
+18: Rendimentos Fortes
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -144,6 +145,9 @@ def process_option(option: int) -> None:
     elif option == 17:
         n_pags = rendimentos_protheus()
         tipo = 'Rendimentos Protheus'
+    elif option == 18:
+        n_pags = rendimentos_fortes()
+        tipo = 'Rendimentos Fortes'
 
 
     if option != 0:
@@ -879,6 +883,32 @@ def rendimentos_protheus() -> int:
                         row = row.split()
                         cpf = row[2]
                         nome = ' '.join(row[5:-1])
+                        break
+                writer.add_page(page)
+                if len(writer.pages) == 2:
+                    file_name = f'Arquivos/{nome}-{cpf}.pdf'
+                    with open(file_name, 'wb') as output:
+                        writer.write(output)
+                    writer = PdfWriter()
+    return tot_pags
+
+
+def rendimentos_fortes() -> int:
+    tot_pags = 0
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+    writer = PdfWriter()
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
+    for file in files:
+        with open(file, 'rb') as file_b:
+            pdf = PdfReader(file_b)
+            tot_pags += len(pdf.pages)
+            for page in tqdm(pdf.pages):
+                rows = page.extract_text().split('\n')
+                for i, row in enumerate(rows):
+                    if 'Título de Eleitor' in row:
+                        cpf = ''.join(char for char in row if char.isnumeric())
+                        nome = rows[i+2]
                         break
                 writer.add_page(page)
                 if len(writer.pages) == 2:
