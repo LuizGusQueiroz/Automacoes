@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.3.0'
+VERSION: str = '0.3.1'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -39,7 +39,7 @@ main_msg: str = '''
 14: Demonstrativo de Férias
 15: NFs Eusébio
 16: Cartas Singular
-17: Rendimentos
+17: Rendimentos Protheus
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -142,8 +142,8 @@ def process_option(option: int) -> None:
         n_pags = cartas_singular()
         tipo = 'Cartas Singular'
     elif option == 17:
-        n_pags = rendimentos()
-        tipo = 'Rendimentos'
+        n_pags = rendimentos_protheus()
+        tipo = 'Rendimentos Protheus'
 
 
     if option != 0:
@@ -860,9 +860,9 @@ def cartas_singular():
     return n_pags
 
 
-def rendimentos() -> int:
+def rendimentos_protheus() -> int:
     tot_pags = 0
-    files = [file for file in os.listdir() if '.pdf' in file]
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
     writer = PdfWriter()
     if not os.path.exists('Arquivos'):
         os.mkdir('Arquivos')
