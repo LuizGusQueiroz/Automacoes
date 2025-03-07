@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.4.0'
+VERSION: str = '0.4.1'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -883,6 +883,8 @@ def rendimentos_protheus() -> int:
                         row = row.split()
                         cpf = row[2]
                         nome = ' '.join(row[5:-1])
+                        for char in ['|', '/', '\\']:
+                            nome = nome.replace(char, '')
                         break
                 writer.add_page(page)
                 if len(writer.pages) == 2:
@@ -909,6 +911,8 @@ def rendimentos_fortes() -> int:
                     if 'Título de Eleitor' in row:
                         cpf = ''.join(char for char in row if char.isnumeric())
                         nome = rows[i+2]
+                        for char in ['|', '/', '\\']:
+                            nome = nome.replace(char, '')
                         break
                 writer.add_page(page)
                 if len(writer.pages) == 2:
