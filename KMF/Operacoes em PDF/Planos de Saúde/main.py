@@ -35,13 +35,15 @@ def planos_de_saude() -> int:
                 operador = rows[3][10:]
                 lotacao = rows[6]
 
-                for i, row in enumerate(rows[7:-1]):
+                for i, row in enumerate(rows[7:-1], start=7):
                     if '-' in row:
-                        plano = ' '.join(row.split()[3:-2])
+                        row = row.split()
+                        plano = ' '.join(row[3:-2])
                         ii = i - 1
                         # Busca a linha com o nome do funcionário.
-                        while ('-' in rows[ii]) and eh_dependente(rows[ii]):
+                        while ('-' in rows[ii]) or eh_dependente(rows[ii]):
                             ii -= 1
+
                         nome = ' '.join(rows[ii].split()[3:-2])
                         valor_fun = row[0]
                         valor_emp = row[1]
