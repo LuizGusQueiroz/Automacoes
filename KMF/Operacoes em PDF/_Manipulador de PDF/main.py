@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.4.1'
+VERSION: str = '0.4.2'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -878,14 +878,15 @@ def rendimentos_protheus() -> int:
                 rows = page.extract_text().split('\n')
                 if len(rows) == 1:
                     continue
-                for i, row in enumerate(rows):
-                    if ' CPF' in row:
-                        row = row.split()
-                        cpf = row[2]
-                        nome = ' '.join(row[5:-1])
-                        for char in ['|', '/', '\\']:
-                            nome = nome.replace(char, '')
-                        break
+                if not len(writer.pages):
+                    for i, row in enumerate(rows):
+                        if ' CPF' in row:
+                            row = row.split()
+                            cpf = row[2]
+                            nome = ' '.join(row[5:-1])
+                            for char in ['|', '/', '\\']:
+                                nome = nome.replace(char, '')
+                            break
                 writer.add_page(page)
                 if len(writer.pages) == 2:
                     file_name = f'Arquivos/{nome}-{cpf}.pdf'
