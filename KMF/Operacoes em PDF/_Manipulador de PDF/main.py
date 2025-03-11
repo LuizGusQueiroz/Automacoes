@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.4.2'
+VERSION: str = '0.6.0'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -41,6 +41,8 @@ main_msg: str = '''
 16: Cartas Singular
 17: Rendimentos Protheus
 18: Rendimentos Fortes
+19: Planos de Saúde
+20: Folha de Pagamento por Centro de Custo
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -82,7 +84,7 @@ def get_last_version():
             return None
     except requests.exceptions.RequestException:
         return None
-
+ 
 
 
 def process_option(option: int) -> None:
@@ -148,6 +150,12 @@ def process_option(option: int) -> None:
     elif option == 18:
         n_pags = rendimentos_fortes()
         tipo = 'Rendimentos Fortes'
+    elif option == 19:
+        n_pags = planos_de_saude()
+        tipo = 'Planos de Saúde'
+    elif option == 20:
+        n_pags = folha_centro_custo()
+        tipo = 'Folha por Centro de Custo'
 
 
     if option != 0:
@@ -940,6 +948,107 @@ def rendimentos_fortes() -> int:
                 writer.write(output)
 
     return tot_pags
+
+
+def planos_de_saude() -> int:
+    def eh_dependente(row: str) -> bool:
+        return ',' not in row.split()[0]
+    tot_pags = 0
+    df = pd.DataFrame(columns=['Empresa', 'Lotação', 'Operador', 'Plano', 'Nome',
+                               'Dependente', 'Valor Funcionário', 'Valor Empresa'])
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
+    for file in files:
+        with open(file, 'rb') as file_b:
+            pdf = PdfReader(file_b)
+            tot_pags += len(pdf.pages)
+            for page in tqdm(pdf.pages):
+                rows = page.extract_text().split('\n')
+                empresa = ' '.join(rows[1].split()[1:])
+                operador = rows[3][10:]
+                lotacao = rows[6]
+
+                for i, row in enumerate(rows[7:-1], start=7):
+                    if '-' in row:
+                        if ' Total: ' in row:
+                            continue
+                        row = row.split()
+                        plano = ' '.join(row[3:-2])
+                        ii = i - 1
+                        # Busca a linha com o nome do funcionário.
+                        while ('-' in rows[ii]) or eh_dependente(rows[ii]):
+                            ii -= 1
+
+                        nome = ' '.join(rows[ii].split()[3:-2])
+                        valor_fun = row[0]
+                        valor_emp = row[1]
+                        df.loc[len(df)] = [empresa, lotacao, operador, plano, nome, '', valor_fun, valor_emp]
+                        ii = i + 1
+                        while eh_dependente(rows[ii]):
+                            row = rows[ii].split()
+                            nome_dep = ' '.join(row[1:-5])
+                            valor_fun = row[-5]
+                            valor_emp = row[-4]
+                            df.loc[len(df)] = [empresa, lotacao, operador, plano, nome, nome_dep, valor_fun, valor_emp]
+                            ii += 1
+            # Cálculo dos totais.
+            df['é dependente'] = df['Dependente'].apply(lambda x: ['Não', 'Sim'][bool(x)])
+            df['Valor Funcionário'] = df['Valor Funcionário'].apply(lambda x: float(x.replace(',', '.')))
+            df['Valor Empresa'] = df['Valor Empresa'].apply(lambda x: float(x.replace(',', '.')))
+            df_totais = df.groupby(['Empresa', 'Plano', 'é dependente'])[['Valor Funcionário', 'Valor Empresa']].sum().reset_index()
+            df_totais['Total Funcionários'] = df.groupby(['Empresa', 'Plano', 'é dependente'])['Nome'].nunique().values
+            df_totais['Total Dependentes'] = df.groupby(['Empresa', 'Plano', 'é dependente'])['Dependente'].nunique().values
+            for row in range(len(df_totais)):
+                if df_totais['é dependente'].iloc[row] == 'Não':
+                    df_totais.at[row, 'Total Dependentes'] = 0
+                else:
+                    df_totais.at[row, 'Total Funcionários'] = 0
+            # Calcula a soma dos totais.
+            df_totais.loc[len(df_totais)] = ['TOTAIS', '', '',
+                                             df_totais['Valor Funcionário'].sum(), df_totais['Valor Empresa'].sum(),
+                                             df_totais['Total Funcionários'].sum(), df_totais['Total Dependentes'].sum()]
+            df.to_excel('planos.xlsx', index=False)
+            df_totais.to_excel('totais.xlsx', index=False)
+    return tot_pags
+
+
+def folha_centro_custo() -> int:
+    n_pags = 0
+    centro_custo = ''
+    codigo = ''
+    novo_centro_custo = '-'
+    novo_codigo = '-'
+    writer = PdfWriter()
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+
+    for file in [file for file in os.listdir() if '.pdf' in file.lower()]:
+        with open(file, 'rb') as file:
+            pdf = PdfReader(file)
+            n_pags += len(pdf.pages)
+            for page in tqdm(pdf.pages):
+                rows = page.extract_text().split('\n')
+                for row in rows:
+                    if 'C Custo' in row:
+                        novo_centro_custo = row.split(': ')[-1].replace('/', '')
+                        novo_codigo = row.split(': ')[2][:-9]
+                        break
+                if novo_centro_custo != centro_custo:
+                    if len(writer.pages) > 0:
+                        # Salva o atual
+                        with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
+                            writer.write(output)
+                    centro_custo = novo_centro_custo
+                    codigo = novo_codigo
+                    writer = PdfWriter()
+                    writer.add_page(page)
+                else:
+                    writer.add_page(page)
+            # Salva o atual
+            with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
+                writer.write(output)
+    return n_pags
+
+
 
 
 if __name__ == '__main__':
