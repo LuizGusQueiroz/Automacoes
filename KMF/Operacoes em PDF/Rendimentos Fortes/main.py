@@ -21,12 +21,14 @@ def rendimentos_fortes() -> int:
                     # MINISTÉRIO DA FAZENDA indica o começo de um novo funcionário, então o
                     # conteúdo atual é salvo, se existir.
                     if len(writer.pages):
-                        file_name = f'Arquivos/{nome}-{cpf}.pdf'
+                        file_name = f'Arquivos/{nome}-{cpf}-{cnpj}.pdf'
                         with open(file_name, 'wb') as output:
                             writer.write(output)
                         # Inicia um novo writer
                         writer = PdfWriter()
                     writer.add_page(page)
+                    # Guarda o CNPJ da empresa.
+                    cnpj = ''.join(char for char in rows[7] if char.isnumeric())
                     # Procura o nome e CPF no novo documento.
                     for i, row in enumerate(rows):
                         achou = False
