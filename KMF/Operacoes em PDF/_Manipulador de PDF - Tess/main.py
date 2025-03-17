@@ -1,6 +1,6 @@
+from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from PyPDF2 import PdfReader, PdfWriter
@@ -12,6 +12,7 @@ from PIL import Image
 from sys import exit
 import pytesseract
 import cv2 as cv
+import requests
 import shutil
 import fitz
 import json
@@ -20,7 +21,7 @@ import os
 
 pytesseract.pytesseract.tesseract_cmd = 'configs/tess/tesseract.exe'
 
-VERSION: str = '0.0.1'
+VERSION: str = '0.1.0'
 
 main_msg: str = '''0: Ajuda (Informações) 
 1: Identificar Automaticamente (mais lento)
@@ -29,6 +30,7 @@ main_msg: str = '''0: Ajuda (Informações)
 4: NFs Sorocaba
 5: NFs Vitória 
 6: NFs Vila Velha
+7: Rendimentos Dif
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -45,6 +47,37 @@ def main():
     print('Manipulador de PDFs')
     print('V: ', VERSION)
     main_hub()  # inicia o menu.
+
+
+def check_update():
+    last_version = get_last_version()
+    if type(last_version) == str:
+        if VERSION != get_last_version():
+            print('Nova versão disponível!')
+            print('Para baixar a nova versão, feche e exclua este arquivo (main.py) e execute o arquivo "download_last_version" dentro da pasta "configs".')
+            input('Para continuar utilizando esta versão, pressione Enter')
+
+
+def get_last_version():
+    # Endpoint da API para buscar o histórico de commits de um arquivo específico
+    url = f"https://api.github.com/repos/LuizGusQueiroz/Automacoes/commits"
+    # Parâmetros da consulta, para buscar commits de um arquivo específico
+    params = {'path': "KMF/Operacoes em PDF/_Manipulador de PDF - Tess/main.exe"}
+    try:
+        # Envia a requisição GET para a API do GitHub
+        response = requests.get(url, params=params)
+        response.raise_for_status()  # Levanta uma exceção se houver um erro na requisição
+        # Extrai o JSON da resposta
+        commits_data = response.json()
+        if commits_data:
+            # A mensagem do commit mais recente está no primeiro item da lista
+            last_commit = commits_data[0]
+            commit_message = last_commit['commit']['message']
+            return commit_message
+        else:
+            return None
+    except requests.exceptions.RequestException:
+        return None
 
 
 def process_option(option: int) -> None:
@@ -74,6 +107,9 @@ def process_option(option: int) -> None:
     elif option == 6:
         n_pags = nfs_vila_velha()
         op = 'NFs Vila Velha'
+    elif option == 7:
+        n_pags = rendimentos_dif()
+        op = 'Rendimentos Dif'
 
     if 0 < option <= options[-1]:
         values = [[data, op, n_pags, time.time()-st]]
@@ -97,7 +133,7 @@ def main_hub():
 def info_hub() -> None:
     option: int = -1
     while option not in options:
-        print('Escolha uma opção para abrir um arquivo do tipo e ler seu funcionamento.')
+        print('Escolha uma opção para ler seu funcionamento.')
         print(help_msg)
         try:
             option = int(input('Escolha: '))
@@ -114,10 +150,8 @@ def info_hub() -> None:
 
 
 def help_doc(option: int) -> None:
-    os.startfile(os.getcwd() + fr'\configs\sample\{option}.pdf')
     with open('configs/READMEs.json', 'r', encoding='utf-8') as file:
         print(json.load(file)[str(option)])
-    print('Um modelo deste arquivo está sendo aberto...')
 
 
 def limpa_terminal() -> None:
@@ -330,6 +364,37 @@ def nfs_vitoria() -> int:
 
 def nfs_vila_velha() -> int:
     return processa_outras(tipo='Vila Velha')
+
+
+def rendimentos_dif() -> int:
+    tot_pags = 0
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
+    for file in tqdm(files):
+        pdf_document = fitz.open(file)  # Abre a Nota Fiscal.
+        tot_pags += pdf_document.page_count
+        page = pdf_document.load_page(0)  # Carrega a página.
+        image = page.get_pixmap()  # Converte a página num objeto de imagem.
+        image.save('img.jpg')  # Salva a imagem num arquivo.
+        pdf_document.close()  # Fechar o PDF para garantir que o arquivo seja liberado
+        image = Image.open('img.jpg')
+        #                  l     u    r    d
+        nome = image.crop((150, 185, 550, 198))
+        cpf = image.crop((45, 185, 130, 198))
+        cnpj = image.crop((35, 147, 130, 160))
+        nome.save('nome.jpg')
+        cpf.save('cpf.jpg')
+        cnpj.save('cnpj.jpg')
+
+        nome: str = extract_text('nome.jpg', config='--psm 7').strip()
+        cpf: str = extract_text('cpf.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
+        cnpj: str = extract_text('cnpj.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
+        # Remove a / do cnpj que é identificada como um '1'.
+        if len(cnpj) == 15:
+            cnpj = cnpj[:8] + cnpj[9:]
+        file_name = '-'.join([nome, cpf, cnpj]) + '.pdf'
+        os.rename(file, file_name)
+
+    return tot_pags
 
 
 if __name__ == '__main__':
