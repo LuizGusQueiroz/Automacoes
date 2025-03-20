@@ -14,7 +14,7 @@ import time
 import os
 
 # Define o diretório onde os PDFs estão armazenados
-diretorio_pdf = r"C:\Users\user251\Documents\KMF Projetos\Automacoes\KMF\Operacoes em PDF\Rendimentos Dirf"
+diretorio_pdf = r"C:\Users\user251\Documents\PROJETOS KMF\Automacoes\KMF\Operacoes em PDF\Rendimentos Dirf"
 
 # Altera o diretório de trabalho para o local dos PDFs
 os.chdir(diretorio_pdf)
@@ -121,8 +121,8 @@ def processar_todos_pdfs_por_nome_cpf(pasta_pdfs: str, output_dir: str):
         separar_pdf_por_nome_cpf(pdf_path, output_dir)
 
 # Exemplo de uso
-pasta_pdfs = r"C:\Users\user251\Documents\KMF Projetos\Automacoes\KMF\Operacoes em PDF\Rendimentos Dirf"
-output_dir = r"C:\Users\user251\Documents\KMF Projetos\Automacoes\KMF\Operacoes em PDF\Rendimentos Dirf\separados"
+pasta_pdfs = r"C:\Users\user251\Documents\PROJETOS KMF\Automacoes\KMF\Operacoes em PDF\Rendimentos Dirf"
+output_dir = r"C:\Users\user251\Documents\PROJETOS KMF\Automacoes\KMF\Operacoes em PDF\Rendimentos Dirf\separados"
 
 # Processa todos os PDFs e separa as páginas com base no nome e CPF
 processar_todos_pdfs_por_nome_cpf(pasta_pdfs, output_dir)
