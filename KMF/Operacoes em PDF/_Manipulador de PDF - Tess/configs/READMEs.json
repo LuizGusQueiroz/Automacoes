@@ -1,8 +1,0 @@
-{
-  "1": "Lista todas as NFs na pasta, identifica a qual prefeitura pertence e as renomeia no formato 'NF (num_nf) - (nome Condomínio).pdf'",
-  "2": "Renomeia NFs de Curitiba no formato 'NF (num_nf) - (nome Condomínio).pdf'",
-  "3": "Renomeia NFs de Salvador no formato 'NF (num_nf) - (nome Condomínio).pdf'",
-  "4": "Renomeia NFs de Sorocaba no formato 'NF (num_nf) - (nome Condomínio).pdf'",
-  "5": "Renomeia NFs de Vitória no formato 'NF (num_nf) - (nome Condomínio).pdf'",
-  "6": "Renomeia NFs de Vila Velha no formato 'NF (num_nf) - (nome Condomínio).pdf'"
-}

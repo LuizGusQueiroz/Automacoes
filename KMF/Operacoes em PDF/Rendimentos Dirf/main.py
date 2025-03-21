@@ -119,6 +119,7 @@ def rendimentos_dif() -> int:
     tot_pags = 0
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
     for file in tqdm(files):
+        # ADICIONAR ITERAÇÃO PELAS PÁGINAS
         pdf_document = fitz.open(file)  # Abre a Nota Fiscal.
         page = pdf_document.load_page(0)  # Carrega a página.
         image = page.get_pixmap()  # Converte a página num objeto de imagem.
