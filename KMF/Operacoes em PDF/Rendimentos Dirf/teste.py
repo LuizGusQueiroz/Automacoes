@@ -1,15 +1,8 @@
-from datetime import datetime
-from time import sleep
 from tqdm import tqdm
 from PIL import Image
-from sys import exit
 import pytesseract
 import cv2 as cv
-import requests
-import shutil
 import fitz
-import json
-import time
 import os
 
 # Função Principal para processar os PDFs de Rendimentos DIRF
@@ -19,8 +12,7 @@ def rendimento_dirf():
 
     # Verifica se o diretório ou arquivo contém "rendimentos dirf"
     if "rendimentos dirf" not in diretorio_atual.lower():
-        print("Erro: O diretório ou arquivo não contém 'rendimentos dirf'.")
-        return 0
+        return 0  # Retorna 0 se o diretório não for o correto
 
     # Configura o caminho do Tesseract (ajuste conforme necessário)
     pytesseract.pytesseract.tesseract_cmd = r'C:\Users\user251\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'
@@ -36,15 +28,6 @@ def rendimento_dirf():
         text = pytesseract.image_to_string(img, config=config)
         return text
 
-    # Função para remover arquivos temporários (imagens) gerados durante o processamento
-    def limpa_residuos():
-        files = []
-        tipos = ['.jpg', '.png']
-        for tipo in tipos:
-            files += [file for file in os.listdir(diretorio_atual) if tipo in file.lower()]
-        for file in files:
-            os.remove(os.path.join(diretorio_atual, file))
-
     # Função para extrair o texto do meio da imagem
     def extrair_texto_do_meio(image_path: str) -> str:
         img = Image.open(image_path)
@@ -57,7 +40,7 @@ def rendimento_dirf():
         return texto.strip()
 
     # Função para separar as páginas de um PDF em arquivos diferentes com base no nome e CPF
-    def separar_pdf_por_nome_cpf(pdf_path: str, output_dir: str) -> int:
+    def separar_pdf_por_nome_cpf(pdf_path: str, output_dir: str, pbar: tqdm) -> int:
         """Separa as páginas de um PDF em arquivos diferentes com base no nome e CPF.
         Retorna o número de páginas processadas."""
         if not os.path.exists(output_dir):
@@ -65,9 +48,8 @@ def rendimento_dirf():
 
         try:
             pdf_document = fitz.open(pdf_path)
-        except Exception as e:
-            print(f"Erro ao abrir o arquivo {pdf_path}: {e}")
-            return 0
+        except Exception:
+            return 0  # Retorna 0 se não conseguir abrir o arquivo
 
         nome_anterior = ""
         cpf_anterior = ""
@@ -77,15 +59,13 @@ def rendimento_dirf():
         for page_num in range(len(pdf_document)):
             try:
                 page = pdf_document.load_page(page_num)
-                print(f"Processando página {page_num + 1} de {len(pdf_document)} do arquivo {os.path.basename(pdf_path)}")  # Log de progresso
 
                 # Tenta criar o pixmap
                 try:
                     image = page.get_pixmap()
                     temp_image_path = os.path.join(diretorio_atual, 'temp_page_image.jpg')
                     image.save(temp_image_path)
-                except Exception as e:
-                    print(f"Erro ao processar a página {page_num + 1}: {e}")
+                except Exception:
                     continue  # Pula para a próxima página
 
                 # Extrai o texto do meio da página
@@ -101,7 +81,6 @@ def rendimento_dirf():
                         output_path = os.path.join(output_dir, f"{nome_anterior}_{cpf_anterior}.pdf")
                         novo_documento.save(output_path)
                         novo_documento.close()
-                        print(f"Arquivo salvo: {output_path}")
 
                     # Extrai nome e CPF da página atual
                     image = Image.open(temp_image_path)
@@ -121,9 +100,10 @@ def rendimento_dirf():
                     novo_documento.insert_pdf(pdf_document, from_page=page_num, to_page=page_num)
 
                 paginas_processadas += 1  # Incrementa o contador de páginas processadas
+                pbar.update(1)  # Atualiza a barra de progresso
 
-            except Exception as e:
-                print(f"Erro ao processar a página {page_num + 1} do arquivo {pdf_path}: {e}")
+            except Exception:
+                continue  # Ignora erros e continua o processamento
             finally:
                 # Remove arquivos temporários
                 temp_files = ['temp_page_image.jpg', 'nome.jpg', 'cpf.jpg']
@@ -137,7 +117,6 @@ def rendimento_dirf():
             output_path = os.path.join(output_dir, f"{nome_anterior}_{cpf_anterior}.pdf")
             novo_documento.save(output_path)
             novo_documento.close()
-            print(f"Arquivo salvo: {output_path}")
 
         pdf_document.close()
         return paginas_processadas  # Retorna o número de páginas processadas
@@ -147,19 +126,21 @@ def rendimento_dirf():
         """Processa todos os PDFs na pasta especificada e separa as páginas com base no nome e CPF.
         Retorna o número total de páginas processadas."""
         if not os.path.exists(pasta_pdfs):
-            print(f"Erro: O diretório '{pasta_pdfs}' não existe.")
-            exit(1)
+            return 0  # Retorna 0 se o diretório não existir
 
         arquivos_pdf = [file for file in os.listdir(pasta_pdfs) if file.lower().endswith('.pdf')]
-        print(f"Arquivos PDF encontrados: {arquivos_pdf}")
 
-        total_paginas_processadas = 0  # Contador total de páginas processadas
+        # Calcula o número total de páginas em todos os PDFs
+        total_paginas = sum(len(fitz.open(os.path.join(pasta_pdfs, arquivo))) for arquivo in arquivos_pdf)
 
-        for arquivo in tqdm(arquivos_pdf, desc="Processando PDFs", unit="arquivo"):
-            pdf_path = os.path.join(pasta_pdfs, arquivo)
-            print(f"Processando arquivo: {arquivo}")
-            paginas_processadas = separar_pdf_por_nome_cpf(pdf_path, output_dir)
-            total_paginas_processadas += paginas_processadas  # Acumula o total de páginas
+        # Inicializa a barra de progresso com o total de páginas
+        with tqdm(total=total_paginas, desc="Processando páginas", unit="página") as pbar:
+            total_paginas_processadas = 0  # Contador total de páginas processadas
+
+            for arquivo in arquivos_pdf:
+                pdf_path = os.path.join(pasta_pdfs, arquivo)
+                paginas_processadas = separar_pdf_por_nome_cpf(pdf_path, output_dir, pbar)
+                total_paginas_processadas += paginas_processadas  # Acumula o total de páginas
 
         return total_paginas_processadas  # Retorna o total de páginas processadas
 
@@ -168,7 +149,7 @@ def rendimento_dirf():
 
     # Processa todos os PDFs e obtém o número total de páginas processadas
     total_paginas = processar_todos_pdfs_por_nome_cpf(diretorio_atual, output_dir)
-    print(f"Total de páginas processadas: {total_paginas}")
+    return total_paginas  # Retorna apenas o número de páginas processadas
 
 if __name__ == "__main__":
-    rendimento_dirf()
+    rendimento_dirf()  # A função é chamada, mas o valor retornado não é exibido
