@@ -18,6 +18,7 @@ import fitz
 import json
 import time
 import os
+import re
 
 pytesseract.pytesseract.tesseract_cmd = f'{os.getcwd()}/../_Manipulador de PDF - Tess/configs/tess/tesseract.exe'
 
@@ -132,7 +133,9 @@ def rendimentos_dirf() -> int:
             # Remove a / do cnpj que é identificada como um '1'.
             if len(cnpj) == 15:
                 cnpj = cnpj[:8] + cnpj[9:]
+
             file_name = 'Arquivos/' + '-'.join([nome, cpf, cnpj]) + '.pdf'
+            file_name = re.sub(r'[^a-zA-Z0-9\s./\\-]', '', file_name)
             novo_pdf = fitz.open()
             novo_pdf.insert_pdf(pdf, from_page=i, to_page=i)
             novo_pdf.save(file_name)
