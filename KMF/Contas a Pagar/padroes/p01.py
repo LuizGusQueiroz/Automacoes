@@ -2,6 +2,7 @@ from PyPDF2 import PdfReader
 from typing import List
 import os
 
+identificador = 'Local de pagamento'
 
 def padrao_01(rows: List[str], tipo: str='sozinho') -> str:
     """
@@ -28,7 +29,7 @@ def padrao_01(rows: List[str], tipo: str='sozinho') -> str:
 
 
 if __name__ == '__main__':
-    file = 'padrao_01.pdf'
+    file = 'files/padrao_01.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_01(rows)
