@@ -11,7 +11,7 @@ Exemplo genérico de como deve ser a função para gerar o nome do arquivo para 
 identificador = 'texto inicial'
 
 
-def padrao_i(rows: List[str], tipo: str) -> str:
+def padrao_i(rows: List[str], tipo: str='sozinho') -> str:
     """
     Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
     Args:
