@@ -1,21 +1,16 @@
 import os
 from PyPDF2 import PdfReader, PdfWriter
 from tqdm import tqdm
-
+# Função principal que contém todas as outras funções e processa os PDFs
 def recibos_de_pagamentos_protheus():
-    """
-    Função principal que contém todas as outras funções e processa os PDFs.
-    """
+   
     def separar_paginas_por_nome(arquivo_pdf: str, pasta_destino: str) -> int:
-        """
-        Separa as páginas de um PDF e as salva em arquivos individuais com base no nome encontrado no texto da página.
-        Retorna o número de páginas processadas.
-        """
+        
         # Verifica se o arquivo existe
         if not os.path.exists(arquivo_pdf):
             print(f"Arquivo não encontrado: {arquivo_pdf}")
             return 0
-
+        
         # Cria a pasta de destino se ela não existir
         os.makedirs(pasta_destino, exist_ok=True)
 
