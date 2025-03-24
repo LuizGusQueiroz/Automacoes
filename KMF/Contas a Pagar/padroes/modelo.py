@@ -6,6 +6,11 @@ import os
 Exemplo genérico de como deve ser a função para gerar o nome do arquivo para documentos pdf.
 """
 
+# Após a análise do conteúdo do pdf, deve ser guardado uma forma de como identificar este tipo de arquivo,
+# pode ser pelo conteúdo de uma das primeiras linhas ou de uma das últimas.
+identificador = 'texto inicial'
+
+
 def padrao_i(rows: List[str], tipo: str) -> str:
     """
     Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
