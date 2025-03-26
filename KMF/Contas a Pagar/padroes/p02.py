@@ -3,7 +3,7 @@ from typing import List
 import os
 
 
-identificador = 'texto inicial'
+identificador = 'RECEBEMOS DE SIMPLES SOLUTIONS COME DE EQUIP ELETRONICOS LTDA OS PRODUTOS CONSTANTES DA NOTA FISCAL INDICADO AO LADONF-e'
 
 
 def padrao_02(rows: List[str]) -> str:
@@ -39,7 +39,7 @@ def visualizar_texto_pdf(file: str) -> None:
         for i, row in enumerate(rows):
             print(i, row)
 
-
+visualizar_texto_pdf('files/padrao_02.pdf')
 if __name__ == '__main__':
     file = 'files/padrao_02.pdf'
     with open(file, 'rb') as file_b:
