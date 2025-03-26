@@ -4,13 +4,11 @@ import os
 
 identificador = 'Local de pagamento'
 
-def padrao_01(rows: List[str], tipo: str='sozinho') -> str:
+def padrao_01(rows: List[str]) -> str:
     """
     Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
     Args:
         rows (List[str]): Lista de linhas da página do pdf.
-        tipo (str): Tipo de agrupamento do arquivo, podendo ser 'sozinho', 'par' ou 'parcelado'. Isto irá afetar a forma
-            como o arquivo será renomeado.
 
     Returns:
         str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
