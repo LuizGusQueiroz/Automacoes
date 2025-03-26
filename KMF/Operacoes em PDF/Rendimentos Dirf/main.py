@@ -18,6 +18,7 @@ import fitz
 import json
 import time
 import os
+import re
 
 pytesseract.pytesseract.tesseract_cmd = f'{os.getcwd()}/../_Manipulador de PDF - Tess/configs/tess/tesseract.exe'
 
@@ -72,41 +73,6 @@ def pdf_to_img(path: str, sizes: Dict, page: int = 0) -> None:
     num_nf.save('num_nf.jpg')
 
 
-def processa_nfs(cidade: str, files: List[str] = []) -> int:
-    tot_pags: int = 0
-    sizes = all_sizes.get(cidade, None)
-    # Verifica se a cidade foi encontrada.
-    if sizes is None:
-        raise TypeError('Cidade não cadastrada.')
-    # Lista as NFs no diretório.
-    if not files:
-        files = [file for file in os.listdir() if '.pdf' in file.lower()]
-
-    print(cidade)
-    sleep(0.1)
-    # Renomeia as notas.
-    for file in tqdm(files):
-        try:
-            pdf_to_img(file, sizes)
-        except TypeError:
-            continue
-        nome: str = extract_text('nome.jpg', config='--psm 7').strip()
-        num_nf: str = extract_text('num_nf.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
-
-        novo_nome = f'NF {num_nf[-4:]} - {nome}.pdf'
-        shutil.move(file, novo_nome)
-    try:
-        # Apaga as imagens residuais.
-        os.remove('img.jpg')
-        os.remove('nome.jpg')
-        os.remove('num_nf.jpg')
-    except FileNotFoundError:
-        pass
-
-    return tot_pags
-
-
-
 def limpa_residuos():
     files = []
     tipos = ['.jpg', '.png']
@@ -115,32 +81,72 @@ def limpa_residuos():
     for file in files:
         os.remove(file)
 
-def rendimentos_dif() -> int:
+def rendimentos_dirf() -> int:
     tot_pags = 0
+    # Cria a pasta de destino dos arquivos
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
     files = [file for file in os.listdir() if '.pdf' in file.lower()]
-    for file in tqdm(files):
-        # ADICIONAR ITERAÇÃO PELAS PÁGINAS
-        pdf_document = fitz.open(file)  # Abre a Nota Fiscal.
-        page = pdf_document.load_page(0)  # Carrega a página.
-        image = page.get_pixmap()  # Converte a página num objeto de imagem.
-        image.save('img.jpg')  # Salva a imagem num arquivo.
-        pdf_document.close()  # Fechar o PDF para garantir que o arquivo seja liberado
-        image = Image.open('img.jpg')
-        #                  l     u    r    d
-        nome = image.crop((150, 185, 550, 198))
-        cpf = image.crop((45, 185, 130, 198))
-        cnpj = image.crop((35, 147, 130, 160))
-        nome.save('nome.jpg')
-        cpf.save('cpf.jpg')
-        cnpj.save('cnpj.jpg')
+    for i, file in enumerate(files):
+        pdf = fitz.open(file)  # Abre o arquivo pdf.
+        # Atualiza o contador de páginas
+        tot_pags += len(pdf)
+        for i in tqdm(range(len(pdf))):
+            page = pdf.load_page(i)  # Carrega a página.
+            image = page.get_pixmap()  # Converte a página num objeto de imagem.
+            image.save('img.jpg')  # Salva a imagem num arquivo.
+            image = Image.open('img.jpg')
+            """
+                Pode ocorrer de a página atual ser continuação do arquivo anterior, então é necessário fazer uma verificação.
+                Nas páginas de continuação, a parte inferior da página é totalmente branca, então será tentado extrair o
+            texto desta seção e caso não retorne nenhum texto, a página será considerada continuação do documento anterior.
+            """
+            verificacao = image.crop((10, 500, 600, 750))
+            verificacao.save('verificacao.jpg')
+            verificacao: str = extract_text('verificacao.jpg', config='--psm 6').strip()
+            # Este if irá entrar em caso o texto de verificação seja igual a '', indicando que a página é uma continuação.
+            if not verificacao:
+                """
+                    Para evitar conflitos, é necessário primeiro abrir o arquivo anterior, em seguida criar um novo
+                arquivo pdf e copiar o anterior para o novo pdf, em seguida fechar e excluir o arquivo anterior,
+                e então adicionar a nova página e salvar o novo pdf.
+                """
+                pdf_ant = fitz.open(file_name)
+                novo_pdf = fitz.open()
+                novo_pdf.insert_pdf(pdf_ant)
+                pdf_ant.close()
+                os.remove(file_name)
+                novo_pdf.insert_pdf(pdf, from_page=i, to_page=i)
+                novo_pdf.save(file_name)
+                continue
+            #                  l     u    r    d
+            nome = image.crop((150, 185, 550, 198))
+            cpf = image.crop((45, 185, 130, 198))
+            cnpj = image.crop((35, 147, 130, 160))
+            nome.save('nome.jpg')
+            cpf.save('cpf.jpg')
+            cnpj.save('cnpj.jpg')
 
-        nome: str = extract_text('nome.jpg', config='--psm 7').strip()
-        cpf: str = extract_text('cpf.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
-        cnpj: str = extract_text('cnpj.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
-        # Remove a / do cnpj que é identificada como um '1'.
-        if len(cnpj) == 15:
-            cnpj = cnpj[:8] + cnpj[9:]
-        file_name = '-'.join([nome, cpf, cnpj]) + '.pdf'
-        os.rename(file, file_name)
+            nome: str = extract_text('nome.jpg', config='--psm 7').strip()
+            cpf: str = extract_text('cpf.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
+            cnpj: str = extract_text('cnpj.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
+            # Remove a / do cnpj que é identificada como um '1'.
+            if len(cnpj) == 15:
+                cnpj = cnpj[:8] + cnpj[9:]
+
+            file_name = 'Arquivos/' + '-'.join([nome, cpf, cnpj]) + '.pdf'
+            file_name = re.sub(r'[^a-zA-Z0-9\s./\\-]', '', file_name)
+            novo_pdf = fitz.open()
+            novo_pdf.insert_pdf(pdf, from_page=i, to_page=i)
+            novo_pdf.save(file_name)
+        pdf.close()  # Fechar o PDF para garantir que o arquivo seja liberado
     limpa_residuos()
-rendimentos_dif()
+    return tot_pags
+
+
+if __name__ == '__main__':
+    try:
+        rendimentos_dirf()
+    except Exception as e:
+        print(e)
+        input()

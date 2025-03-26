@@ -2,16 +2,11 @@ from PyPDF2 import PdfReader
 from typing import List
 import os
 
-"""
-Exemplo genérico de como deve ser a função para gerar o nome do arquivo para documentos pdf.
-"""
 
-# Após a análise do conteúdo do pdf, deve ser guardado uma forma de como identificar este tipo de arquivo,
-# pode ser pelo conteúdo de uma das primeiras linhas ou de uma das últimas.
-identificador = 'texto inicial'
+identificador = 'RECEBEMOS DE SIMPLES SOLUTIONS COME DE EQUIP ELETRONICOS LTDA OS PRODUTOS CONSTANTES DA NOTA FISCAL INDICADO AO LADONF-e'
 
 
-def padrao_i(rows: List[str]) -> str:
+def padrao_02(rows: List[str]) -> str:
     """
     Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
     Args:
@@ -20,12 +15,14 @@ def padrao_i(rows: List[str]) -> str:
     Returns:
         str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
     """
-    for row in rows:
-        if 'nome' in row:
-            nome = row.split()[3]
+    num_nf = rows[1].split()[0]
+    for i, row in enumerate(rows):
+        if 'CONTROLE DO FISCODANFE' in row:
+            beneficiario = row[22:]
+        elif 'VALOR TOTAL DA NOTA' in row:
+            valor = rows[i+1].split()[-1]
             break
-    cpf = rows[2].split()[5]
-    file_name = f'{nome}-{cpf}.pdf'
+    file_name = f'FOLK - {valor} - NF{num_nf} - {beneficiario}.pdf'
     return file_name
 
 
@@ -43,10 +40,9 @@ def visualizar_texto_pdf(file: str) -> None:
             print(i, row)
 
 
-
 if __name__ == '__main__':
-    file = ''
+    file = 'files/padrao_02.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
-        file_name = padrao_i(rows)
+        file_name = padrao_02(rows)
     print(file_name)
