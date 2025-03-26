@@ -120,7 +120,7 @@ try:
     aut = Aut()
     #aut.run()
     #count = aut.get_count()
-    aut.get_example('DANFSe v1.0')
+    aut.get_example('Seu boleto chegou,')
 except Exception as e:
     print(e)
     input()
