@@ -68,29 +68,28 @@ class Aut:
                 pass
         return count
 
+    def get_example(self, identificador: str):
+        paths: List[str] = self.df['path'].unique().tolist()
+        # Percorre todos os arquivos
+        for path in tqdm(paths):
+            try:
+                with open(path, 'rb') as file:
+                    pdf = PdfReader(file)
+                    rows: List[str] = pdf.pages[0].extract_text().split('\n')
+                    for i in range(min(len(rows), 3)):
+                        if rows[i] == identificador:
+                            shutil.copy(path, 'exemplo.pdf')
+                            return
+            except (FileNotFoundError, TypeError, PdfReadError):
+                pass
+
     def run(self) -> None:
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
         # Percorre todos os códigos.
         for codigo in tqdm(codigos):
-            """
-                Lista todos os caminhos de arquivos atrelados a este código. Caso haja apenas um arquivo, este será
-            considerado sozinho, podendo ser um boleto ou uma NF, caso sejam 2 arquivos, será considerado um par, 
-            sendo um boleto e uma NF juntos, caso sejam pelo menos 3, será considerado parcelado, sendo um boleto e
-            n NFs sendo parcelas do pagamento deste boleto.
-                Esta classificação precisa ser guardada pois ela afeta a forma como o arquivo será renomeado.
-                
-                A verificação de se os arquivos agregados é feita calculando seu tamanho e subtraindo 1, pois caso haja
-            apenas 1 arquivos, irá retornar 0, e caso contrário, irá retornar no mínimo 1, a função bool() irá converter
-            0 em False e qualquer outro valor em True.
-            """
+            # Lista todos os caminhos de arquivos atrelados a este código.
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
-            if len(paths) == 1:
-                tipo = 'sozinho'
-            elif len(paths) == 2:
-                tipo = 'par'
-            else:
-                tipo = 'parcelado'
             for path in paths:
                 try:
                     with open(path, 'rb') as file:
@@ -105,7 +104,7 @@ class Aut:
                         padrao = max(self.patterns.get(rows[i], 0) for i in range(min(2, len(rows))))
                         if padrao == 0:  # Caso não seja encontrado nenhuma correspondência, o arquivo é ignorado.
                             continue
-                        file_name = exec(f'self.padrao_{padrao}(rows, tipo)')
+                        file_name = exec(f'self.padrao_{padrao}(rows)')
                         file_name = f'Arquivos/{file_name}'
                         shutil.copy(path, file_name)
 
@@ -120,9 +119,8 @@ class Aut:
 try:
     aut = Aut()
     #aut.run()
-    count = aut.get_count()
-    for key in count:
-        print([count[key], key])
+    #count = aut.get_count()
+    aut.get_example('DANFSe v1.0')
 except Exception as e:
     print(e)
     input()
