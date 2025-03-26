@@ -15,13 +15,13 @@ def padrao_01(rows: List[str]) -> str:
     """
     for row in rows:
         if 'Nosso número' in row:
-            nome = row[row.find('Nosso número')+12:]
+            beneficiario = row[row.find('Nosso número')+12:]
         elif 'Espécie documento Aceite' in row:
             num_nf = row[:row.find('Espécie')]
         elif '(=) Valor do documento' in row:
             valor = row[:row.find('(=)')]
             break
-    file_name = f'FOLK - {valor} - BOLETO - NF{num_nf} - {nome}.pdf'
+    file_name = f'FOLK - {valor} - BOLETO - NF{num_nf} - {beneficiario}.pdf'
 
     return file_name
 
