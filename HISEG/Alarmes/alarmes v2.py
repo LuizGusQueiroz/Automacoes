@@ -23,6 +23,8 @@ class Automacao:
         self.init_lista_datas()
         self.pasta_download = r'C:\Users\ADM\Downloads'
         self.pasta_destino = r'C:\Users\ADM\OneDrive - KMF - CONSULTORIA EMPRESARIAL E TREINAMENTOS LTDA - ME\HISEG - Sharepoint\somaseg_ordensServico'
+        self.pasta_download = f'{os.getcwd()}/Dw'
+        self.pasta_destino = f'{os.getcwd()}/Ds'
         options = Options()
         options.add_experimental_option('prefs', {
             "download.default_directory": self.pasta_download,  # Pasta de download.
@@ -201,8 +203,8 @@ class Automacao:
 
 
 try:
-    email = 'email'
-    senha = 'senha'
+    email = ''
+    senha = ''
     aut = Automacao(email, senha)
     aut.run()
 

@@ -9,11 +9,10 @@ import shutil
 
 
 class Aut:
-    def __init__(self, patterns: Dict[str, str]):
+    def __init__(self, patterns: Dict[str, str] = {}):
         self.patterns = patterns
         self.creds: Dict[str, str] = self.get_creds()
         self.df: pd.DataFrame = self.get_data()
-
 
     def get_creds(self) -> Dict[str, str]:
         with open('creds.txt', 'r') as file:
@@ -21,7 +20,6 @@ class Aut:
             rows: List[List[str]] = [row.split(' = ') for row in rows]
             creds = {chave: valor for chave, valor in rows}
         return creds
-
 
     def get_data(self) -> pd.DataFrame:
         try:
@@ -51,6 +49,24 @@ class Aut:
         except Exception as e:
             print(f"Erro ao conectar ao banco de dados: {e}")
 
+    def get_count(self) -> Dict[str, int]:
+        count = {}
+        for path in tqdm(self.df['path']):
+            try:
+                with open(path, 'rb') as file:
+                    pdf = PdfReader(file)
+                    rows = pdf.pages[0].extract_text().split('\n')
+                    i = 0
+                    while i+1 < len(rows) and len(rows[i].strip()) < 2:
+                        i += 1
+                    value = rows[i]
+                    if value in count.keys():
+                        count[value] += 1
+                    else:
+                        count[value] = 1
+            except (FileNotFoundError, TypeError, PdfReadError):
+                pass
+        return count
 
     def run(self) -> None:
         # Lista todos os códigos de pedido.
@@ -58,14 +74,23 @@ class Aut:
         # Percorre todos os códigos.
         for codigo in tqdm(codigos):
             """
-                Lista todos os diretórios de arquivos atrelados a este código. Caso haja mais de um arquivo, este será
-            considerado agrupado, e a forma de renomeá-lo será diferente.
+                Lista todos os caminhos de arquivos atrelados a este código. Caso haja apenas um arquivo, este será
+            considerado sozinho, podendo ser um boleto ou uma NF, caso sejam 2 arquivos, será considerado um par, 
+            sendo um boleto e uma NF juntos, caso sejam pelo menos 3, será considerado parcelado, sendo um boleto e
+            n NFs sendo parcelas do pagamento deste boleto.
+                Esta classificação precisa ser guardada pois ela afeta a forma como o arquivo será renomeado.
+                
                 A verificação de se os arquivos agregados é feita calculando seu tamanho e subtraindo 1, pois caso haja
             apenas 1 arquivos, irá retornar 0, e caso contrário, irá retornar no mínimo 1, a função bool() irá converter
             0 em False e qualquer outro valor em True.
             """
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
-            agrupado = bool(len(paths)-1)
+            if len(paths) == 1:
+                tipo = 'sozinho'
+            elif len(paths) == 2:
+                tipo = 'par'
+            else:
+                tipo = 'parcelado'
             for path in paths:
                 try:
                     with open(path, 'rb') as file:
@@ -80,7 +105,7 @@ class Aut:
                         padrao = max(self.patterns.get(rows[i], 0) for i in range(min(2, len(rows))))
                         if padrao == 0:  # Caso não seja encontrado nenhuma correspondência, o arquivo é ignorado.
                             continue
-                        file_name = exec(f'self.padrao_{padrao}(rows)')
+                        file_name = exec(f'self.padrao_{padrao}(rows, tipo)')
                         file_name = f'Arquivos/{file_name}'
                         shutil.copy(path, file_name)
 
@@ -92,11 +117,12 @@ class Aut:
                     pass
 
 
-
-
 try:
     aut = Aut()
-    aut.run()
+    #aut.run()
+    count = aut.get_count()
+    for key in count:
+        print([count[key], key])
 except Exception as e:
     print(e)
     input()
