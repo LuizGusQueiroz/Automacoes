@@ -11,13 +11,11 @@ Exemplo genérico de como deve ser a função para gerar o nome do arquivo para 
 identificador = 'texto inicial'
 
 
-def padrao_i(rows: List[str], tipo: str='sozinho') -> str:
+def padrao_i(rows: List[str]) -> str:
     """
     Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
     Args:
         rows (List[str]): Lista de linhas da página do pdf.
-        tipo (str): Tipo de agrupamento do arquivo, podendo ser 'sozinho', 'par' ou 'parcelado'. Isto irá afetar a forma
-            como o arquivo será renomeado.
 
     Returns:
         str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
@@ -28,9 +26,6 @@ def padrao_i(rows: List[str], tipo: str='sozinho') -> str:
             break
     cpf = rows[2].split()[5]
     file_name = f'{nome}-{cpf}.pdf'
-    if tipo == 'par':
-        codigo = rows[1].split()[5]
-        file_name = f'{codigo}-{file_name}'
     return file_name
 
 
