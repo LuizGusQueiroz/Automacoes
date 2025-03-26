@@ -17,15 +17,11 @@ def padrao_07(rows: List[str]) -> str:
     """
     beneficiario = rows[1]
     for row in rows:
-        if '(=)' in row:
-            num = row[row.find('Parcela')-7:row.find('Parcela')]
         if 'R$' in row:
-            valor = row.split()[1]
+            valor = row
             break
-    file_name = f'FOLK - {valor} - BOLETO - num{num} - {beneficiario}.pdf'
+    file_name = f'FOLK - {valor} - BOLETO - {beneficiario}.pdf'
     return file_name
-
-
 
 
 def visualizar_texto_pdf(file: str) -> None:
@@ -41,9 +37,8 @@ def visualizar_texto_pdf(file: str) -> None:
         for i, row in enumerate(rows):
             print(i, row)
 
-visualizar_texto_pdf('files/padrao_07.pdf')
 
-if __name__ == '1__main__':
+if __name__ == '__main__':
     file = 'files/padrao_07.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
