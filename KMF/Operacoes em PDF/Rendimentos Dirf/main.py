@@ -120,22 +120,23 @@ def rendimentos_dirf() -> int:
                 novo_pdf.save(file_name)
                 continue
             #                  l     u    r    d
-            nome = image.crop((150, 185, 550, 198))
+            #nome = image.crop((150, 185, 550, 198))
             cpf = image.crop((45, 185, 130, 198))
-            cnpj = image.crop((35, 147, 130, 160))
-            nome.save('nome.jpg')
+            #cnpj = image.crop((35, 147, 130, 160))
+            #nome.save('nome.jpg')
             cpf.save('cpf.jpg')
-            cnpj.save('cnpj.jpg')
+            #cnpj.save('cnpj.jpg')
 
-            nome: str = extract_text('nome.jpg', config='--psm 7').strip()
+            #nome: str = extract_text('nome.jpg', config='--psm 7').strip()
             cpf: str = extract_text('cpf.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
-            cnpj: str = extract_text('cnpj.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
+            #cnpj: str = extract_text('cnpj.jpg', config='--psm 13 -c tessedit_char_whitelist=0123456789').strip()
             # Remove a / do cnpj que é identificada como um '1'.
-            if len(cnpj) == 15:
-                cnpj = cnpj[:8] + cnpj[9:]
+            #if len(cnpj) == 15:
+            #    cnpj = cnpj[:8] + cnpj[9:]
 
-            file_name = 'Arquivos/' + '-'.join([nome, cpf, cnpj]) + '.pdf'
-            file_name = re.sub(r'[^a-zA-Z0-9\s./\\-]', '', file_name)
+            #file_name = 'Arquivos/' + '-'.join([nome, cpf, cnpj]) + '.pdf'
+            #file_name = re.sub(r'[^a-zA-Z0-9\s./\\-]', '', file_name)
+            file_name = f'Arquivos/{cpf}.pdf'
             novo_pdf = fitz.open()
             novo_pdf.insert_pdf(pdf, from_page=i, to_page=i)
             novo_pdf.save(file_name)
