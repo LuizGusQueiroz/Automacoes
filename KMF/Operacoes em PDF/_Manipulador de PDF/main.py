@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.6.1'
+VERSION: str = '0.7.0'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -31,7 +31,7 @@ main_msg: str = '''
  6: Folha de Pagamento, Férias e Rescisão 
  7: re FGTS 
  8: Listagem de Conferência 
- 9: Recibos de Pagamento 
+ 9: Recibos de Pagamento Fortes
 10: Recibos FOLK 
 11: Relatório de Serviços Administrativos 
 12: Resumo Geral Mês/Período 
@@ -43,6 +43,7 @@ main_msg: str = '''
 18: Rendimentos Fortes
 19: Planos de Saúde
 20: Folha de Pagamento por Centro de Custo
+21: Recibos de Pagamento Protheus
 '''
 # Substitui o primeiro item da lista.
 help_msg = '\n'.join(['\n 0: Retornar '] + main_msg.split('\n')[2:])
@@ -121,8 +122,8 @@ def process_option(option: int) -> None:
         n_pags = listagem_conferencia()
         tipo = 'Listagem de Conferência'
     elif option == 9:
-        n_pags = recibos_pagamento()
-        tipo = 'Recibos de Pagamento'
+        n_pags = recibos_pagamento_fortes()
+        tipo = 'Recibos de Pagamento Fortes'
     elif option == 10:
         n_pags = recibos_folk()
         tipo = 'Recibos FOLK'
@@ -156,6 +157,9 @@ def process_option(option: int) -> None:
     elif option == 20:
         n_pags = folha_centro_custo()
         tipo = 'Folha por Centro de Custo'
+    elif option == 21:
+        n_pags = recibos_pagamento_protheus()
+        tipo = 'Recibos de Pagamento Protheus'
 
 
     if option != 0:
@@ -619,7 +623,7 @@ def listagem_conferencia() -> int:  # 8
     return tot_pags
 
 
-def recibos_pagamento() -> int:  # 9
+def recibos_pagamento_fortes() -> int:  # 9
     # Cria a pasta de destino dos recibos
     if not os.path.exists('Recibos de Pagamento'):
         os.mkdir('Recibos de Pagamento')
@@ -1050,6 +1054,46 @@ def folha_centro_custo() -> int:
                 writer.write(output)
     return n_pags
 
+
+def recibos_pagamento_protheus() -> int:
+    """
+        Separa todos os arquivos .pdf que sejam recibos de pagamento emitios pelo sistema Protheus com base no funcionário,
+    criando um arquivo individual para cada novo funcionário.
+    Returns:
+        (int): O total de páginas somadas de todos os arquivos pdf.
+    """
+    # inicia a contagem de páginas
+    n_pags = 0
+    # Cria a pasta de destino dos arquivos separados.
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+    # Lista todos os arquivos .pdf no diretório.
+    # O 'file.lower()' previne casos de arquivos salvos como 'file.PDF'.
+    files = [file for file in os.listdir() if '.pdf' in file.lower()]
+    for file in files:
+        # Abre o arquivo pdf.
+        with open(file, 'rb') as file_b:
+            pdf = PdfReader(file_b)
+            # Soma o total das suas páginas.
+            n_pags += len(pdf.pages)
+            # Percorre as páginas do pdf.
+            for page in tqdm(pdf.pages):
+                # Extrai o texto do pdf na forma de uma lista de strings.
+                rows: List[str] = page.extract_text().split('\n')
+                # Acessa o nome e a matrícula, que estão na terceira linha.
+                # Ao dar um split na terceira linha, os 4 primeiros e os 2 últimos itens são de cabeçalho,
+                # restando o nome entre os items 5 até o -3.
+                # Já a matrícula é o segundo item dessa linha.
+                nome = ' '.join(rows[3].split()[5:-3])
+                matricula = rows[3].split()[2]
+                # Formata o nome do arquivo com os dados encontrados.
+                file_name = f'Arquivos/{nome}-{matricula}.pdf'
+                # Salva a página em um arquivo separado.
+                writer = PdfWriter()
+                writer.add_page(page)
+                with open(file_name, 'wb') as output:
+                    writer.write(output)
+    return n_pags
 
 
 
