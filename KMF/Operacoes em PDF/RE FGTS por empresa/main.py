@@ -36,6 +36,7 @@ def re_fgts_por_empresa() -> int:
         with open(file, 'rb') as file_b:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF.
             pdf = PdfReader(file_b)
+            tot_pags += len(pdf.pages)
             # Itera sobre todas as páginas do PDF
             for page in tqdm(pdf.pages):
                 # Extrai o texto da página no formato de uma lista de strings.
@@ -78,12 +79,12 @@ def re_fgts_por_empresa() -> int:
                 # Salva a página em um novo arquivo PDF
                 with open(f'{empregador}/{nome}', 'wb') as output_file:
                     writer.write(output_file)
-
+    return tot_pags
 
 
 
 if __name__ == '__main__':
     try:
-        re_fgts_por_empresa()
+        print(re_fgts_por_empresa())
     except Exception as e:
         print(e)
