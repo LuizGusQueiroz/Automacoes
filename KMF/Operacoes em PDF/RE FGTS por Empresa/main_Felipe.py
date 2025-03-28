@@ -79,8 +79,10 @@ def re_fgts_por_empresa():
 
                     with open(output_path, 'wb') as output_file:
                         pdf_writer.write(output_file)
-                    
-
-    print(total_paginas)
+    return total_paginas                    
+    
+   
 if __name__ == '__main__':
     re_fgts_por_empresa()
+    x = re_fgts_por_empresa()
+    print(x)
