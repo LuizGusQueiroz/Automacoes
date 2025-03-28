@@ -3,7 +3,7 @@ from typing import List
 import os
 
 
-identificador = 'Telefônica Brasil S/A'
+identificador = 'DANFSe v1.0'
 
 
 def padrao_05(rows: List[str]) -> str:
@@ -15,13 +15,15 @@ def padrao_05(rows: List[str]) -> str:
     Returns:
         str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
     """
-    for row in rows:
-        if row.startswith('Número da Fatura:'):
-            num = row.split()[-1]
-        elif 'R$' in row:
-            valor = row
-            break
-    file_name = f'FOLK - {valor} - BOLETO - num{num} - VIVO.pdf'
+    beneficiario = None
+    for i, row in enumerate(rows):
+        if 'Competência daNFS-' in row:
+            num = ''.join(char for char in row if char.isnumeric())
+        elif 'Nome /Nome Empresarial' in row and beneficiario is None:
+            beneficiario = ' '.join(rows[i+1].split()[:-1])
+        elif 'Valor Líquido' in row:
+            valor = rows[i+1]
+    file_name = f'FOLK - {valor} - BOLETO - num{num} - {beneficiario}.pdf'
     return file_name
 
 
@@ -39,9 +41,9 @@ def visualizar_texto_pdf(file: str) -> None:
             print(i, row)
 
 # FOLK PORTARIA - R$ 480,00 - TRANSFERENCIA - NF 104 - GISLANIA SANTOS DA SILVA
-visualizar_texto_pdf('files/padrao_05.pdf')
+#visualizar_texto_pdf('files/padrao_05.pdf')
 
-if __name__ == '1__main__':
+if __name__ == '__main__':
     file = 'files/padrao_05.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
