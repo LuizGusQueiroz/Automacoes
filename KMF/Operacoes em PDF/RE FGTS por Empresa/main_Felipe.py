@@ -32,11 +32,11 @@ def safe_folder_name(name: str) -> str:
 # Função principal do código
 def re_fgts_por_empresa():
     clientes: pd.DataFrame = get_de_para()
-
+    total_paginas = 0
     for arq in [file for file in os.listdir() if file.lower().endswith('.pdf')]:
         with open(arq, 'rb') as file:
             pdf_reader = PdfReader(file)
-            
+            total_paginas += len(pdf_reader.pages)
             # Processa cada página individualmente
             for page_pdf in tqdm(pdf_reader.pages, desc=f"Processando {arq}"):
                 page = page_pdf.extract_text().split('\n')
@@ -79,7 +79,8 @@ def re_fgts_por_empresa():
 
                     with open(output_path, 'wb') as output_file:
                         pdf_writer.write(output_file)
+                    
 
-
+    print(total_paginas)
 if __name__ == '__main__':
     re_fgts_por_empresa()
