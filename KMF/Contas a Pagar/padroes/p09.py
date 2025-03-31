@@ -15,7 +15,14 @@ def padrao_09(rows: List[str]) -> str:
     Returns:
         str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
     """
-    file_name = self.padrao_06(rows)
+    beneficiario = rows[2][:-15]
+    num = rows[3]
+
+    for i, row in enumerate(rows):
+        if 'Valor Líquido' in row:
+            valor = rows[i+1]
+            break
+    file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
     return file_name
 
 
@@ -32,13 +39,14 @@ def visualizar_texto_pdf(file: str) -> None:
         page = pdf.pages[0]
         rows = page.extract_text().split('\n')
         for i, row in enumerate(rows):
-            print(i, row)
+            print([i, row])
 
-visualizar_texto_pdf('files/padrao_07.pdf')
 
-if __name__ == '1__main__':
-    file = 'files/padrao_07.pdf'
+visualizar_texto_pdf(os.listdir()[2])
+
+if __name__ == '__main__':
+    file = 'files/padrao_09.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
-        file_name = padrao_07(rows)
+        file_name = padrao_09(rows)
     print(file_name)
