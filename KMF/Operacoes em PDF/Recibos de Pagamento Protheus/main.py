@@ -7,8 +7,8 @@ import os
 
 def recibos_pagamento_protheus() -> int:
     """
-        Separa todos os arquivos .pdf que sejam recibos de pagamento emitios pelo sistema Protheus com base no funcionário,
-    criando um arquivo individual para cada novo funcionário.
+        Separa todos os arquivos .pdf que sejam recibos de pagamento emitios pelo sistema Protheus com base no
+    funcionário, criando um arquivo individual para cada novo funcionário.
     Returns:
         (int): O total de páginas somadas de todos os arquivos pdf.
     """
@@ -36,8 +36,10 @@ def recibos_pagamento_protheus() -> int:
                 # Já a matrícula é o segundo item dessa linha.
                 nome = ' '.join(rows[3].split()[5:-3])
                 matricula = rows[3].split()[2]
+                centro_custo = ' '.join(rows[2].split()[5:-1])
+                cnpj = rows[1].split()[-1]
                 # Formata o nome do arquivo com os dados encontrados.
-                file_name = f'Arquivos/{nome}-{matricula}.pdf'
+                file_name = f'Arquivos/{nome}-{matricula}-{centro_custo}-{cnpj}.pdf'
                 # Salva a página em um arquivo separado.
                 writer = PdfWriter()
                 writer.add_page(page)
@@ -46,4 +48,8 @@ def recibos_pagamento_protheus() -> int:
     return n_pags
 
 
+# with open(os.listdir()[1], 'rb') as file:
+#     rows = PdfReader(file).pages[0].extract_text().split('\n')
+#     for i, row in enumerate(rows):
+#         print(i, row)
 recibos_pagamento_protheus()
