@@ -282,7 +282,14 @@ class Aut:
         Returns:
             str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
         """
-        file_name = self.padrao_06(rows)
+        beneficiario = rows[2][:-15]
+        num = rows[3]
+
+        for i, row in enumerate(rows):
+            if 'Valor Líquido' in row:
+                valor = rows[i + 1]
+                break
+        file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
         return file_name
 
     def run(self) -> None:
@@ -305,9 +312,10 @@ class Aut:
                 padrao = max(self.patterns.get(rows[i], 0) for i in range(min(2, len(rows))))
                 if padrao == 0:  # Caso não seja encontrado nenhuma correspondência, o arquivo é ignorado.
                     continue
-                file_name = exec(f'self.padrao_{padrao}(rows)')
+                print([path, padrao])
+                file_name = eval(f'self.padrao_{padrao:02}(rows)')
                 file_name = f'Arquivos/{file_name}'
-                print(file_name)
+                print(['file_name', file_name])
                 #shutil.copy(path, file_name)
 
                 """
