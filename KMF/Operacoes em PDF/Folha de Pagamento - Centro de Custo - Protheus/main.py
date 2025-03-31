@@ -3,7 +3,8 @@ import os
 from tqdm import tqdm
 
 
-def main() -> None:
+def main() -> int:
+    tot_pags = 0
     centro_custo = ''
     codigo = ''
     novo_centro_custo = '-'
@@ -15,6 +16,7 @@ def main() -> None:
     for file in [file for file in os.listdir() if '.pdf' in file.lower()]:
         with open(file, 'rb') as file:
             pdf = PdfReader(file)
+            tot_pags += len(pdf.pages)
             for page in tqdm(pdf.pages):
                 rows = page.extract_text().split('\n')
                 for row in rows:
@@ -36,6 +38,7 @@ def main() -> None:
             # Salva o atual
             with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
                 writer.write(output)
+    return tot_pags
 
 
 if __name__ == '__main__':
