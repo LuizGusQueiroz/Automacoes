@@ -1004,8 +1004,18 @@ def planos_de_saude() -> int:
     return tot_pags
 
 
+
+
 def folha_centro_custo_protheus() -> int:
+    def get_tabela() -> pd.DataFrame:
+        files = [file for file in os.listdir() if '.xls' in file]
+        if len(files) != 1:
+            return pd.DataFrame()
+        return pd.read_excel(files[0], header=2)
+
     tot_pags = 0
+    df = get_tabela()
+    tem_relacao = len(df) > 0
     centro_custo = ''
     codigo = ''
     novo_centro_custo = '-'
@@ -1027,8 +1037,13 @@ def folha_centro_custo_protheus() -> int:
                         break
                 if novo_centro_custo != centro_custo:
                     if len(writer.pages) > 0:
+                        cnpj = ''
+                        if tem_relacao:
+                            result = df[df['Desc Moeda 1'] == centro_custo]['CNPJ/CEI Tom'].tolist()
+                            if len(result) == 1:
+                                cnpj = ''.join(char for char in str(result[0]) if char.isnumeric())
                         # Salva o atual
-                        with open(f'Arquivos/{centro_custo}-{codigo}.pdf', 'wb') as output:
+                        with open(f'Arquivos/{codigo}-{centro_custo}-{cnpj}.pdf', 'wb') as output:
                             writer.write(output)
                     centro_custo = novo_centro_custo
                     codigo = novo_codigo
@@ -1036,8 +1051,14 @@ def folha_centro_custo_protheus() -> int:
                     writer.add_page(page)
                 else:
                     writer.add_page(page)
+            cnpj = ''
+            if tem_relacao:
+                result = df[df['Desc Moeda 1'] == centro_custo]['CNPJ/CEI Tom'].tolist()
+                if len(result) == 1:
+                    cnpj = ''.join(char for char in result[0] if char.isnumeric())
+                    print(cnpj)
             # Salva o atual
-            with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
+            with open(f'Arquivos/{codigo}-{centro_custo}-{cnpj}.pdf', 'wb') as output:
                 writer.write(output)
     return tot_pags
 
