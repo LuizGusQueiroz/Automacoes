@@ -26,8 +26,6 @@ def padrao_09(rows: List[str]) -> str:
     return file_name
 
 
-
-
 def visualizar_texto_pdf(file: str) -> None:
     """
     Imprime o texto disponível em um arquivo pdf.
@@ -41,8 +39,6 @@ def visualizar_texto_pdf(file: str) -> None:
         for i, row in enumerate(rows):
             print([i, row])
 
-
-visualizar_texto_pdf(os.listdir()[2])
 
 if __name__ == '__main__':
     file = 'files/padrao_09.pdf'
