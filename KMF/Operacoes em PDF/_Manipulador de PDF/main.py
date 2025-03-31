@@ -624,15 +624,15 @@ def listagem_conferencia() -> int:  # 8
 
 
 def recibos_pagamento_fortes() -> int:  # 9
+    tot_pags = 0
     # Cria a pasta de destino dos recibos
-    if not os.path.exists('Recibos de Pagamento'):
-        os.mkdir('Recibos de Pagamento')
-    tot_pags: int = 0
+    if not os.path.exists('Recibos'):
+        os.mkdir('Recibos')
 
     escolha = ''
     while escolha not in ['1', '2']:
-        escolha = input('-' * 30 + '\n'
-                        '1: Separar por funcionário.\n'
+        print('-'*50)
+        escolha = input('1: Separar por funcionário.\n'
                         '2: Separar por Lotação.\n'
                         'Escolha: ')
 
@@ -641,43 +641,30 @@ def recibos_pagamento_fortes() -> int:  # 9
     for arq in files:
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
-            pdf_reader = PdfReader(file)
-            tot_pags += len(pdf_reader.pages)
-            if escolha == '1':  # Separa por funcionário
-                # Itera sobre todas as páginas do PDF
-                for pag in tqdm(pdf_reader.pages):
-                    rows = pag.extract_text().split('\n')
+            pdf = PdfReader(file)
+            tot_pags += len(pdf.pages)
+            for pag in tqdm(pdf.pages):
+                writer = PdfWriter()
+                rows = pag.extract_text().split('\n')
+                lotacao = rows[9][:-5]
+                cnpj = ''.join(char for char in rows[5].split()[1] if char.isnumeric())
+                if escolha == '1':
                     # Acessa a linha que contém o nome do empregado.
                     nome = rows[11]
-                    # Acessa a linha que contém a lotação do empregado.
-                    lotacao = rows[9][:-5]
-                    file_name = f'Recibos de Pagamento\\{lotacao}-{nome}.pdf'.replace('/', '')
-                    pdf_writer = PdfWriter()
-                    # Adiciona a página atual ao objeto PdfWriter
-                    pdf_writer.add_page(pag)
-
-                    # Salva a página em um novo arquivo PDF
-                    with open(file_name, 'wb') as output_file:
-                        pdf_writer.write(output_file)
-
-            elif escolha == '2':  # Separa por lotação
-                for pag in tqdm(pdf_reader.pages):
-                    rows = pag.extract_text().split('\n')
-                    lotacao = rows[9][:-5]
-
-                    file_name = f'Recibos de Pagamento\\{lotacao}.pdf'.replace('/', '')
-                    pdf_writer = PdfWriter()
+                    file_name = f'Recibos\\{lotacao}-{nome}-{cnpj}.pdf'.replace('/', '')
+                else:
+                    file_name = f'Recibos\\{lotacao}-{cnpj}.pdf'.replace('/', '')
                     # Verifica se já existe um arquivo para esta lotação.
                     if os.path.exists(file_name):
                         pdf_reader_temp = PdfReader(file_name)
                         # Copia todas as páginas do documento da lotação para o writer.
                         for page_num in range(len(pdf_reader_temp.pages)):
-                            pdf_writer.add_page(pdf_reader_temp.pages[page_num])
-                    # Adiciona a página atual
-                    pdf_writer.add_page(pag)
-                    # Salva o arquivo
-                    with open(file_name, "wb") as output_pdf:
-                        pdf_writer.write(output_pdf)
+                            writer.add_page(pdf_reader_temp.pages[page_num])
+                # Adiciona a página atual
+                writer.add_page(pag)
+                # Salva o arquivo
+                with open(file_name, "wb") as output_pdf:
+                    writer.write(output_pdf)
     return tot_pags
 
 
