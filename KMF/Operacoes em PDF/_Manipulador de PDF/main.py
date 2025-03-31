@@ -42,7 +42,7 @@ main_msg: str = '''
 17: Rendimentos Protheus
 18: Rendimentos Fortes
 19: Planos de Saúde
-20: Folha de Pagamento por Centro de Custo
+20: Folha de Pagamento por Centro de Custo Protheus
 21: Recibos de Pagamento Protheus
 '''
 # Substitui o primeiro item da lista.
@@ -155,8 +155,8 @@ def process_option(option: int) -> None:
         n_pags = planos_de_saude()
         tipo = 'Planos de Saúde'
     elif option == 20:
-        n_pags = folha_centro_custo()
-        tipo = 'Folha por Centro de Custo'
+        n_pags = folha_centro_custo_protheus()
+        tipo = 'Folha por Centro de Custo Protheus'
     elif option == 21:
         n_pags = recibos_pagamento_protheus()
         tipo = 'Recibos de Pagamento Protheus'
@@ -1004,8 +1004,8 @@ def planos_de_saude() -> int:
     return tot_pags
 
 
-def folha_centro_custo() -> int:
-    n_pags = 0
+def folha_centro_custo_protheus() -> int:
+    tot_pags = 0
     centro_custo = ''
     codigo = ''
     novo_centro_custo = '-'
@@ -1017,18 +1017,18 @@ def folha_centro_custo() -> int:
     for file in [file for file in os.listdir() if '.pdf' in file.lower()]:
         with open(file, 'rb') as file:
             pdf = PdfReader(file)
-            n_pags += len(pdf.pages)
+            tot_pags += len(pdf.pages)
             for page in tqdm(pdf.pages):
                 rows = page.extract_text().split('\n')
                 for row in rows:
-                    if 'C Custo' in row:
+                    if 'C Custo' in row or 'Centro Custo' in row:
                         novo_centro_custo = row.split(': ')[-1].replace('/', '')
                         novo_codigo = row.split(': ')[2][:-9]
                         break
                 if novo_centro_custo != centro_custo:
                     if len(writer.pages) > 0:
                         # Salva o atual
-                        with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
+                        with open(f'Arquivos/{centro_custo}-{codigo}.pdf', 'wb') as output:
                             writer.write(output)
                     centro_custo = novo_centro_custo
                     codigo = novo_codigo
@@ -1039,7 +1039,7 @@ def folha_centro_custo() -> int:
             # Salva o atual
             with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
                 writer.write(output)
-    return n_pags
+    return tot_pags
 
 
 def recibos_pagamento_protheus() -> int:
