@@ -50,44 +50,22 @@ class Aut:
         except Exception as e:
             print(f"Erro ao conectar ao banco de dados: {e}")
 
-
-    def get_rows(self, path: str) -> List[str]|None:
-        """
-            Tenta abrir um pdf e extrair seu texto.
-        :param path: caminho do arquivo pdf.
-        :return: list
-        Args:
-             path (str): Caminho do arquivo pdf.
-        Returns:
-            List[str]: lista com o texto das linhas do pdf.
-        """
-        if path is None:
-            return None
+    def get_rows(self, path: str):
         try:
             with open(path, 'rb') as file:
-                pdf = PdfReader(file)
-                rows = pdf.pages[0].extract_text().split('\n')
+                rows = PdfReader(file).pages[0].extract_text().split('\n')
                 return rows
-        except FileNotFoundError:  # , TypeError, PdfReadError):
-            """
-                Em caso de arquivo não encontrado, pode ser que ele esteja em outro servidor, então apenas o nome
-            será alterado e será tentado abrir o arquivo novamente.
-            """
-            path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
-            try:
-                with open(path, 'rb') as file:
-                    pdf = PdfReader(file)
-                    rows = pdf.pages[0].extract_text().split('\n')
-            except Exception:
-                # Se o erro persistir ou outro surgir, o arquivo será ignorado.
+        except FileNotFoundError:
+            if not path.startswith('Y:\\'):
                 return None
-        except Exception:
-            # Em caso de outros erros, será apenas retornado None.
+            new_path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
+            if new_path != path:
+                return self.get_rows(new_path)
+            return None
+        except (PdfReadError, TypeError, KeyError, IndexError):
             return None
 
-
     def get_count(self) -> Dict[str, int]:
-        ps = []
         count = {}
         paths = [str(path) for path in self.df['path'] if '.pdf' in str(path).lower()]
         for path in tqdm(paths):
@@ -102,7 +80,6 @@ class Aut:
                 count[value] += 1
             else:
                 count[value] = 1
-        pd.DataFrame(ps).to_excel('paths.xlsx', index=False)
         return count
 
     def get_count_tipo(self) -> Dict[str, int]:
@@ -126,21 +103,19 @@ class Aut:
         paths: List[str] = self.df['path'].unique().tolist()
         # Percorre todos os arquivos
         for path in tqdm(paths):
-            try:
-                with open(path, 'rb') as file:
-                    pdf = PdfReader(file)
-                    rows: List[str] = self.get_rows(path)
-                    if rows is None:
-                        continue
-                    for i in range(min(len(rows), 3)):
-                        if rows[i] == identificador:
-                            shutil.copy(path, f'exemplo{n}.pdf')
-                            n -= 1
-                            if n==0:
-                                return
-            except (FileNotFoundError, TypeError, PdfReadError):
-                pass
-
+            rows: List[str] = self.get_rows(path)
+            if rows is None:
+                continue
+            for i in range(min(len(rows), 3)):
+                if rows[i] == identificador:
+                    try:
+                        shutil.copy(path, f'exemplo{n}.pdf')
+                    except FileNotFoundError:
+                        path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
+                        shutil.copy(path, f'exemplo{n}.pdf')
+                    n -= 1
+                    if n==0:
+                        return
     def padrao_01(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
@@ -359,14 +334,13 @@ patterns: Dict[str, int] = {
     '1 /': 9
 }
 
-aut = Aut(patterns)
-aut.run()
+
 if __name__ == '__main__':
     try:
         aut = Aut(patterns)
-        aut.run()
+        #aut.run()
         #count = aut.get_count()
-        #aut.get_example('Local de Pagamento', 15)
+        aut.get_example('RECEBEMOS DE SIMPLES SOLUTIONS COME DE EQUIP ELETRONICOS LTDA OS PRODUTOS CONSTANTES DA NOTA FISCAL INDICADO AO LADONF-e', 3)
         #count = aut.get_count_tipo()
         # for key in count:
         #     print(f'{key}: {count[key]}')
