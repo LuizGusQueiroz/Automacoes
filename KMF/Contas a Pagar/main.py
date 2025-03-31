@@ -10,7 +10,7 @@ import pikepdf
 
 
 class Aut:
-    def __init__(self, patterns: Dict[str, str] = {}):
+    def __init__(self, patterns: Dict[str, int] = {}):
         self.patterns = patterns
         self.creds: Dict[str, str] = self.get_creds()
         self.df: pd.DataFrame = self.get_data()
@@ -50,45 +50,47 @@ class Aut:
         except Exception as e:
             print(f"Erro ao conectar ao banco de dados: {e}")
 
+
+    def get_rows(self, path: str) -> List[str]|None:
+        """
+            Tenta abrir um pdf e extrair seu texto.
+        :param path: caminho do arquivo pdf.
+        :return: list
+        Args:
+             path (str): Caminho do arquivo pdf.
+        Returns:
+            List[str]: lista com o texto das linhas do pdf.
+        """
+        if path is None:
+            return None
+        try:
+            with open(path, 'rb') as file:
+                pdf = PdfReader(file)
+                rows = pdf.pages[0].extract_text().split('\n')
+                return rows
+        except FileNotFoundError:  # , TypeError, PdfReadError):
+            """
+                Em caso de arquivo não encontrado, pode ser que ele esteja em outro servidor, então apenas o nome
+            será alterado e será tentado abrir o arquivo novamente.
+            """
+            path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
+            try:
+                with open(path, 'rb') as file:
+                    pdf = PdfReader(file)
+                    rows = pdf.pages[0].extract_text().split('\n')
+            except Exception:
+                # Se o erro persistir ou outro surgir, o arquivo será ignorado.
+                return None
+
+
     def get_count(self) -> Dict[str, int]:
         ps = []
         count = {}
         paths = [str(path) for path in self.df['path'] if '.pdf' in str(path).lower()]
         for path in tqdm(paths):
-            try:
-                with open(path, 'rb') as file:
-                    pdf = PdfReader(file)
-                    rows = pdf.pages[0].extract_text().split('\n')
-            except FileNotFoundError:  # , TypeError, PdfReadError):
-                """
-                    Em caso de arquivo não encontrado, pode ser que ele esteja em outro servidor, então apenas o nome
-                será alterado e será tentado abrir o arquivo novamente.
-                """
-                path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
-                try:
-                    with open(path, 'rb') as file:
-                        pdf = PdfReader(file)
-                        rows = pdf.pages[0].extract_text().split('\n')
-                except Exception:
-                    # Se o erro persistir ou outro surgir, o arquivo será ignorado e irá pular para o próximo arquivo.
-                    continue
-            except PdfReadError:
-                """
-                    Pode ocorrer de o arquivo estar corromp
-                    ido, caso seja uma corroção pequena, é possível restaurar
-                utilizando a biblioteca pikepdf, e tentar abrir o arquivo novamente.
-                """
-                try:  # Tenta restaurar o arquivo.
-                    with pikepdf.open(path) as pdf:
-                        pdf.save('teste.pdf')
-                    with open('teste.pdf', 'rb') as file:
-                        # Tenta abrir novamente o arquivo.
-                        pdf = PdfReader(file)
-                        rows = pdf.pages[0].extract_text().split('\n')
-                except pikepdf.PdfError:
-                    # Caso o arquivo continue não disponível, pula para o próximo.
-                    continue
-
+            rows: List[str] = self.get_rows(path)
+            if rows is None:
+                continue
             i = 0
             while i+1 < len(rows) and len(rows[i].strip()) < 2:
                 i += 1
@@ -124,7 +126,9 @@ class Aut:
             try:
                 with open(path, 'rb') as file:
                     pdf = PdfReader(file)
-                    rows: List[str] = pdf.pages[0].extract_text().split('\n')
+                    rows: List[str] = self.get_rows(path)
+                    if rows is None:
+                        continue
                     for i in range(min(len(rows), 3)):
                         if rows[i] == identificador:
                             shutil.copy(path, f'exemplo{n}.pdf')
@@ -155,7 +159,7 @@ class Aut:
 
         return file_name
 
-    def padrao_02(rows: List[str]) -> str:
+    def padrao_02(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
         Args:
@@ -174,7 +178,7 @@ class Aut:
         file_name = f'FOLK - {valor} - NF{num_nf} - {beneficiario}.pdf'
         return file_name
 
-    def padrao_03(rows: List[str]) -> str:
+    def padrao_03(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
         Args:
@@ -193,7 +197,7 @@ class Aut:
         file_name = f'FOLK - {valor} - BOLETO - num{num} - {beneficiario}.pdf'
         return file_name
 
-    def padrao_04(rows: List[str]) -> str:
+    def padrao_04(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
         Args:
@@ -211,7 +215,7 @@ class Aut:
         file_name = f'FOLK - {valor} - BOLETO - num{num} - VIVO.pdf'
         return file_name
 
-    def padrao_06(rows: List[str]) -> str:
+    def padrao_06(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
         Args:
@@ -232,7 +236,7 @@ class Aut:
         file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
         return file_name
 
-    def padrao_07(rows: List[str]) -> str:
+    def padrao_07(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
         Args:
@@ -249,7 +253,7 @@ class Aut:
         file_name = f'FOLK - {valor} - BOLETO - {beneficiario}.pdf'
         return file_name
 
-    def padrao_08(rows: List[str]) -> str:
+    def padrao_08(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
         Args:
@@ -289,60 +293,27 @@ class Aut:
             # Lista todos os caminhos de arquivos atrelados a este código.
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
             for path in paths:
-                try:
+                rows: List[str] = self.get_rows(path)
+                if rows is None:
+                    continue
+                print('1')
+                """
+                    Identifica o tipo de arquivo através do padrão da primeira ou segunda linha.
+                    O min(2, len(rows)) previso o caso de pdfs baseados em imagem, que contém apenas uma linha.
+                    O max() serve para pegar apenas o padrão encontrado, que sempre será superior que 0.
+                """
+                padrao = max(self.patterns.get(rows[i], 0) for i in range(min(2, len(rows))))
+                if padrao == 0:  # Caso não seja encontrado nenhuma correspondência, o arquivo é ignorado.
+                    continue
+                file_name = exec(f'self.padrao_{padrao}(rows)')
+                file_name = f'Arquivos/{file_name}'
+                print(file_name)
+                #shutil.copy(path, file_name)
 
-                    with open(path, 'rb') as file:
-                        pdf = PdfReader(path)
-                        # Extrai o texto do pdf e o separa por linha, considerando apenas a primeira linha.
-                        rows: List[str] = pdf.pages[0].extract_text().split('\n')
-                except FileNotFoundError:
-                    """
-                        Em caso de arquivo não encontrado, pode ser que ele esteja em outro servidor, então apenas o nome
-                    será alterado e será tentado abrir o arquivo novamente.
-                    """
-                    path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
-                    try:
-                        with open(path, 'rb') as file:
-                            pdf = PdfReader(file)
-                            rows = pdf.pages[0].extract_text().split('\n')
-                    except Exception:
-                        # Se o erro persistir ou outro surgir, o arquivo será ignorado e irá pular para o próximo arquivo.
-                        continue
-                except PdfReadError:
-                    """
-                        Pode ocorrer de o arquivo estar corromp
-                        ido, caso seja uma corroção pequena, é possível restaurar
-                    utilizando a biblioteca pikepdf, e tentar abrir o arquivo novamente.
-                    """
-                    try:  # Tenta restaurar o arquivo.
-                        with pikepdf.open(path) as pdf:
-                            pdf.save('teste.pdf')
-                        with open('teste.pdf', 'rb') as file:
-                            # Tenta abrir novamente o arquivo.
-                            pdf = PdfReader(file)
-                            rows = pdf.pages[0].extract_text().split('\n')
-                    except pikepdf.PdfError:
-                        # Caso o arquivo continue não disponível, pula para o próximo.
-                        continue
-                    """
-                        Identifica o tipo de arquivo através do padrão da primeira ou segunda linha.
-                        O min(2, len(rows)) previso o caso de pdfs baseados em imagem, que contém apenas uma linha.
-                        O max() serve para pegar apenas o padrão encontrado, que sempre será superior que 0.
-                    """
-                    padrao = max(self.patterns.get(rows[i], 0) for i in range(min(2, len(rows))))
-                    if padrao == 0:  # Caso não seja encontrado nenhuma correspondência, o arquivo é ignorado.
-                        continue
-                    file_name = exec(f'self.padrao_{padrao}(rows)')
-                    file_name = f'Arquivos/{file_name}'
-                    print(file_name)
-                    #shutil.copy(path, file_name)
-
-                    """
-                        Pode ocorrrer de o arquivo ter sido removido do diretório mas não do sistema, e ao tentar acessá-lo,
-                    gerar erro, ou o pdf pode estar em um formato inválido ou corrompido, gerando erros também.
-                    """
-                except (FileNotFoundError, TypeError, PdfReadError):
-                    pass
+                """
+                    Pode ocorrrer de o arquivo ter sido removido do diretório mas não do sistema, e ao tentar acessá-lo,
+                gerar erro, ou o pdf pode estar em um formato inválido ou corrompido, gerando erros também.
+                """
 
 
 
@@ -351,22 +322,24 @@ patterns: Dict[str, int] = {
     'RECEBEMOS DE SIMPLES SOLUTIONS COME DE EQUIP ELETRONICOS LTDA OS PRODUTOS CONSTANTES DA NOTA FISCAL INDICADO AO LADONF-e': 2,
     'Banco do Brasil S/A 001-9Beneficiário': 3,
     'Telefônica Brasil S/A': 4,
-
+    'DANFSe v1.0': 5,
     'WERUS METALÚRGICA E MANUTENÇÕES': 6,
     'Seu boleto chegou,': 7,
     'Local de Pagamento': 8,
     '1 /': 9
 }
 
-if __name__ == '1__main__':
+aut = Aut(patterns)
+aut.run()
+if __name__ == '__main__':
     try:
-        aut = Aut()
-        #aut.run()
-        count = aut.get_count()
+        aut = Aut(patterns)
+        aut.run()
+        #count = aut.get_count()
         #aut.get_example('Local de Pagamento', 15)
         #count = aut.get_count_tipo()
-        for key in count:
-            print(f'{key}: {count[key]}')
+        # for key in count:
+        #     print(f'{key}: {count[key]}')
 
     except Exception as e:
         print(e)
