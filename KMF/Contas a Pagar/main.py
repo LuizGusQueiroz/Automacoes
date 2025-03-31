@@ -81,6 +81,9 @@ class Aut:
             except Exception:
                 # Se o erro persistir ou outro surgir, o arquivo será ignorado.
                 return None
+        except Exception:
+            # Em caso de outros erros, será apenas retornado None.
+            return None
 
 
     def get_count(self) -> Dict[str, int]:
@@ -234,6 +237,7 @@ class Aut:
                 valor = rows[i + 1]
         file_name = f'FOLK - {valor} - BOLETO - num{num} - {beneficiario}.pdf'
         return file_name
+
     def padrao_06(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
