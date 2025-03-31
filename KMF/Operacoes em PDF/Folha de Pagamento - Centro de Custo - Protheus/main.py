@@ -18,14 +18,14 @@ def main() -> None:
             for page in tqdm(pdf.pages):
                 rows = page.extract_text().split('\n')
                 for row in rows:
-                    if 'C Custo' in row:
+                    if 'C Custo' in row or 'Centro Custo' in row:
                         novo_centro_custo = row.split(': ')[-1].replace('/', '')
                         novo_codigo = row.split(': ')[2][:-9]
                         break
                 if novo_centro_custo != centro_custo:
                     if len(writer.pages) > 0:
                         # Salva o atual
-                        with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
+                        with open(f'Arquivos/{centro_custo}-{codigo}.pdf', 'wb') as output:
                             writer.write(output)
                     centro_custo = novo_centro_custo
                     codigo = novo_codigo
@@ -36,7 +36,6 @@ def main() -> None:
             # Salva o atual
             with open(f'Arquivos/{codigo}-{centro_custo}.pdf', 'wb') as output:
                 writer.write(output)
-
 
 
 if __name__ == '__main__':
