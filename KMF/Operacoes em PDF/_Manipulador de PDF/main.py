@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.7.1'
+VERSION: str = '0.7.2'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -1044,8 +1044,8 @@ def folha_centro_custo() -> int:
 
 def recibos_pagamento_protheus() -> int:
     """
-        Separa todos os arquivos .pdf que sejam recibos de pagamento emitios pelo sistema Protheus com base no funcionário,
-    criando um arquivo individual para cada novo funcionário.
+        Separa todos os arquivos .pdf que sejam recibos de pagamento emitios pelo sistema Protheus com base no
+    funcionário, criando um arquivo individual para cada novo funcionário.
     Returns:
         (int): O total de páginas somadas de todos os arquivos pdf.
     """
@@ -1073,14 +1073,17 @@ def recibos_pagamento_protheus() -> int:
                 # Já a matrícula é o segundo item dessa linha.
                 nome = ' '.join(rows[3].split()[5:-3])
                 matricula = rows[3].split()[2]
+                centro_custo = ' '.join(rows[2].split()[5:-1])
+                cnpj = rows[1].split()[-1]
                 # Formata o nome do arquivo com os dados encontrados.
-                file_name = f'Arquivos/{nome}-{matricula}.pdf'
+                file_name = f'Arquivos/{nome}-{matricula}-{centro_custo}-{cnpj}.pdf'
                 # Salva a página em um arquivo separado.
                 writer = PdfWriter()
                 writer.add_page(page)
                 with open(file_name, 'wb') as output:
                     writer.write(output)
     return n_pags
+
 
 
 
