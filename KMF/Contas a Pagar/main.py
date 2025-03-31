@@ -215,6 +215,25 @@ class Aut:
         file_name = f'FOLK - {valor} - BOLETO - num{num} - VIVO.pdf'
         return file_name
 
+    def padrao_05(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        beneficiario = None
+        for i, row in enumerate(rows):
+            if 'Competência daNFS-' in row:
+                num = ''.join(char for char in row if char.isnumeric())
+            elif 'Nome /Nome Empresarial' in row and beneficiario is None:
+                beneficiario = ' '.join(rows[i + 1].split()[:-1])
+            elif 'Valor Líquido' in row:
+                valor = rows[i + 1]
+        file_name = f'FOLK - {valor} - BOLETO - num{num} - {beneficiario}.pdf'
+        return file_name
     def padrao_06(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
@@ -303,7 +322,6 @@ class Aut:
                 rows: List[str] = self.get_rows(path)
                 if rows is None:
                     continue
-                print('1')
                 """
                     Identifica o tipo de arquivo através do padrão da primeira ou segunda linha.
                     O min(2, len(rows)) previso o caso de pdfs baseados em imagem, que contém apenas uma linha.
