@@ -1,14 +1,24 @@
-from os import listdir, path, mkdir
+import os
 from PyPDF2 import PdfReader, PdfWriter
 from tqdm import tqdm
+import pandas as pd
 
 
 def main():
-    # Cria a pasta de destino dos recibos
-    if not path.exists('Arquivos'):
-        mkdir('Arquivos')
+    def get_tabela() -> pd.DataFrame:
+        files = [file for file in os.listdir() if '.csv' in file]
+        if len(files) != 1:
+            return pd.DataFrame()
+        return pd.read_csv(files[0], header=None, sep=';', encoding='latin1', names=['cod', 'nome', 'cnpj', 'tomador'])
 
-    for arq in [file for file in listdir() if '.pdf' in file]:
+    tot_pags = 0
+    df = get_tabela()
+    tem_relacao = len(df) > 0
+    # Cria a pasta de destino dos recibos
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
+
+    for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
@@ -29,13 +39,19 @@ def main():
                     print(tipo)
                     continue
                 # Verifica se já há umas pasta para o tipo
-                if not path.exists(f'Arquivos/{tipo}'):
-                    mkdir(f'Arquivos/{tipo}')
+                if not os.path.exists(f'Arquivos/{tipo}'):
+                    os.mkdir(f'Arquivos/{tipo}')
                 # Verifica se está na página de resumo ou se a lotacao for a mesma, se sim,
                 # junta as páginas, caso contrário, salva o arquivo atual e cria um pdf novo.
                 if 'Total Geral ' in lotacao_nova or lotacao_nova != lotacao:
                     if pdf_writer.pages:
-                        with open(f'Arquivos/{tipo}/{lotacao.replace('/', '')}.pdf', 'wb') as output_file:
+                        cnpj = ''
+                        if tem_relacao:
+                            result = df[df['nome'] == lotacao]['cnpj']
+                            if len(result) == 1:
+                                cnpj = result[0]
+                        file_name = f'Arquivos/{tipo}/{lotacao.replace('/', '')}-{cnpj}.pdf'
+                        with open(file_name, 'wb') as output_file:
                             pdf_writer.write(output_file)
                         pdf_writer = PdfWriter()
                     lotacao = lotacao_nova
