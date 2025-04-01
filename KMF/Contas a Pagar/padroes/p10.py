@@ -2,7 +2,7 @@ from PyPDF2 import PdfReader
 from typing import List
 import os
 
-identificador = 'Local de pagamento'
+identificador = 'Pix Copia e Cola'
 
 def padrao_01(rows: List[str]) -> str:
     """
