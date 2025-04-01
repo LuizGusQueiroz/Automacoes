@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.7.2'
+VERSION: str = '0.7.3'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -468,10 +468,18 @@ def fichas_de_registro() -> int:  # 5
 
 
 def folha_rescisao_ferias() -> int:  # 6
+    def get_tabela() -> pd.DataFrame:
+        files = [file for file in os.listdir() if '.csv' in file]
+        if len(files) != 1:
+            return pd.DataFrame()
+        return pd.read_csv(files[0], header=None, sep=';', encoding='latin1', names=['cod', 'nome', 'cnpj', 'tomador'])
+
+    tot_pags = 0
+    df = get_tabela()
+    tem_relacao = len(df) > 0
     # Cria a pasta de destino dos recibos
-    if not os.path.exists('Folhas de Pagamento'):
-        os.mkdir('Folhas de Pagamento')
-    tot_pags: int = 0
+    if not os.path.exists('Arquivos'):
+        os.mkdir('Arquivos')
 
     for arq in [file for file in os.listdir() if '.pdf' in file]:
         with open(arq, 'rb') as file:
@@ -479,28 +487,34 @@ def folha_rescisao_ferias() -> int:  # 6
             pdf_reader = PdfReader(file)
             pdf_writer = PdfWriter()
             lotacao = ''
-            tot_pags += len(pdf_reader.pages)
+
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
                 tipo = ' '.join(page[0].split()[:3])
                 # Verifica o tipo de arquivo
                 if tipo == 'Folha de Pagamento':
-                    lotacao_nova = page[6]
+                    lotacao_nova = page[5]
                 elif tipo == 'Listagem de Férias':
-                    lotacao_nova = page[5]
+                    lotacao_nova = page[4]
                 elif tipo == 'Listagem de Rescisão':
-                    lotacao_nova = page[5]
+                    lotacao_nova = page[4]
                 else:
                     print(tipo)
                     continue
                 # Verifica se já há umas pasta para o tipo
-                if not os.path.exists(f'Folhas de Pagamento/{tipo}'):
-                    os.mkdir(f'Folhas de Pagamento/{tipo}')
+                if not os.path.exists(f'Arquivos/{tipo}'):
+                    os.mkdir(f'Arquivos/{tipo}')
                 # Verifica se está na página de resumo ou se a lotacao for a mesma, se sim,
                 # junta as páginas, caso contrário, salva o arquivo atual e cria um pdf novo.
                 if 'Total Geral ' in lotacao_nova or lotacao_nova != lotacao:
                     if pdf_writer.pages:
-                        with open(f'Folhas de Pagamento/{tipo}/{lotacao.replace('/', '')}.pdf', 'wb') as output_file:
+                        cnpj = ''
+                        if tem_relacao:
+                            result = df[df['nome'] == lotacao]['cnpj']
+                            if len(result) == 1:
+                                cnpj = result[0]
+                        file_name = f'Arquivos/{tipo}/{lotacao.replace('/', '')}-{cnpj}.pdf'
+                        with open(file_name, 'wb') as output_file:
                             pdf_writer.write(output_file)
                         pdf_writer = PdfWriter()
                     lotacao = lotacao_nova
