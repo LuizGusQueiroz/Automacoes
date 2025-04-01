@@ -62,7 +62,7 @@ class Aut:
             if new_path != path:
                 return self.get_rows(new_path)
             return None
-        except (PdfReadError, TypeError, KeyError, IndexError):
+        except (PdfReadError, TypeError, KeyError, IndexError, OSError):
             return None
 
     def get_count(self) -> Dict[str, int]:
@@ -340,7 +340,7 @@ if __name__ == '__main__':
         aut = Aut(patterns)
         #aut.run()
         #count = aut.get_count()
-        aut.get_example('RECEBEMOS DE SIMPLES SOLUTIONS COME DE EQUIP ELETRONICOS LTDA OS PRODUTOS CONSTANTES DA NOTA FISCAL INDICADO AO LADONF-e', 3)
+        aut.get_example('InstruÃ§Ãµes de ImpressÃ£o', 5)
         #count = aut.get_count_tipo()
         # for key in count:
         #     print(f'{key}: {count[key]}')
