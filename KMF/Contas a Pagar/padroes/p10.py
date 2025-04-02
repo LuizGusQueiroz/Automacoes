@@ -4,7 +4,7 @@ import os
 
 identificador = 'Pix Copia e Cola'
 
-def padrao_01(rows: List[str]) -> str:
+def padrao_10(rows: List[str]) -> str:
     """
     Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
     Args:
@@ -44,5 +44,5 @@ if __name__ == '__main__':
     file = 'files/padrao_10.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
-        file_name = padrao_01(rows)
+        file_name = padrao_10(rows)
     print(file_name)
