@@ -1,3 +1,5 @@
+import os.path
+
 import pymssql
 from typing import Dict, List
 from sys import exit
@@ -100,7 +102,7 @@ class Aut:
         return count
 
     def get_example(self, identificador: str, n: int=1):
-        paths: List[str] = self.df['path'].unique().tolist()
+        paths: List[str] = self.df['path'].unique().tolist()[::-1]
         # Percorre todos os arquivos
         for path in tqdm(paths):
             rows: List[str] = self.get_rows(path)
@@ -290,7 +292,173 @@ class Aut:
         file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
         return file_name
 
+    def padrao_10(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        for i, row in enumerate(rows):
+            if '( = ) Valor Cobrado' in row:
+                num = rows[i + 1].split()[-1]
+                valor = rows[i + 2].split()[1]
+            elif 'Agência/Código Beneficiário' in row:
+                beneficiario = ' '.join(row.split()[3:])
+                break
+
+        file_name = f'FOLK - {valor} - BOLETO - NF{num} - {beneficiario}.pdf'
+
+        return file_name
+
+    def padrao_11(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        beneficiario = None
+        for i, row in enumerate(rows):
+            if 'Espécie Doc' in row:
+                num = row[:-11]
+            elif 'Beneficiário' in row and beneficiario is None:
+                row = rows[i + 1]
+                beneficiario = row[:row.find('CPF/CNPJ')]
+            elif '(=) Valor do Documento' in row:
+                valor = rows[i + 1]
+                break
+
+        file_name = f'FOLK - {valor} - BOLETO - {num} - {beneficiario}.pdf'
+
+        return file_name
+
+    def padrao_12(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        beneficiario = None
+        for i, row in enumerate(rows):
+            if 'R$' in row:
+                valor = row
+            elif 'Beneficiário Final' in row:
+                beneficiario = ' '.join(row.split()[2:-2])
+            elif 'Espécie Documento' in row:
+                num = row[:-17]
+                break
+
+        file_name = f'FOLK - {valor} - BOLETO - {num} - {beneficiario}.pdf'
+
+        return file_name
+
+    def padrao_13(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        # O modelo 13 (Ligga) tem 3 submodelos.
+        if 'CPF/CNPJ' in rows[7]:
+            # Modelo 13.1
+            for row in rows:
+                if 'Descrição dos Produtos' in row:
+                    num = row.split()[-4]
+                    break
+                elif 'R$' in row:
+                    valor = row.split()[2]
+                    valor = f'R$ {valor[:valor.find(',') + 2]}'
+                    beneficiario = ' '.join(row.split()[2:])
+                    beneficiario = beneficiario[beneficiario.find(',') + 3:]
+            file_name = f'FOLK - {valor} - BOLETO - {num} - {beneficiario}.pdf'
+        elif 'Período de Referência' in rows[7]:
+            # Modelo 13.2
+            for i, row in enumerate(rows[4:], start=4):
+                if ',' in row:
+                    valor = row.split()[1]
+                    valor = f'R$ {valor[:valor.find(',') + 2]}'
+                    beneficiario = ' '.join(row.split()[1:])
+                    beneficiario = beneficiario[beneficiario.find(',') + 3:]
+                    num = rows[i - 1].split()[-1]
+                    break
+            file_name = f'FOLK - {valor} - BOLETO - {num} - {beneficiario}.pdf'
+        else:
+            # Modelo 13.3
+            for i, row in enumerate(rows):
+                if row.startswith('Modelo'):
+                    num = row.split()[-1]
+                elif 'Tomador dos serviços' in row:
+                    beneficiario = rows[i + 1]
+                elif 'Valor Total' in row:
+                    valor = rows[i + 1].split()[-1]
+                    break
+            file_name = f'FOLK - R$ {valor} - NF - {num} - {beneficiario}.pdf'
+
+        return file_name
+
+    def padrao_14(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        num = rows[1].split()[-1]
+        for i, row in enumerate(rows):
+            if row.startswith('MUNICÍPIO'):
+                row = rows[i + 1]
+                row = row[row.rfind('-'):]
+                beneficiario = ' '.join(row.split()[:-1])
+                beneficiario = beneficiario[beneficiario.find('-') + 4:]
+            elif row.startswith('FATURA'):
+                valor = rows[i + 1].split()[-1]
+                break
+
+        file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
+        return file_name
+
+    def padrao_15(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        beneficiario = None
+        for i, row in enumerate(rows):
+            if row.startswith('Pagador'):
+                row = rows[i + 1]
+                beneficiario = row[:row.find('CPF')].strip()
+            elif '(=) Valor do Documento' in row:
+                valor = rows[i + 1].split()[0][:-3]
+            elif 'NUMERO(S) DA(S) NOTA(S)' in row:
+                num = row.split()[-1].replace('/', '')
+                break
+
+        file_name = f'FOLK - {valor} - BOLETO - {num} - {beneficiario}.pdf'
+
+        return file_name
+
     def run(self) -> None:
+        # Cria a pasta de destino dos arquivos.
+        folder = 'Arquivos'
+        if os.path.exists(folder):
+            os.mkdir(folder)
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
         # Percorre todos os códigos.
@@ -310,8 +478,12 @@ class Aut:
                 if padrao == 0:  # Caso não seja encontrado nenhuma correspondência, o arquivo é ignorado.
                     continue
                 print([path, padrao])
+                subfolder = f'{folder}/{codigo}'
+                # Cria a pasta para este código.
+                if not os.path.exists(subfolder):
+                    os.mkdir(subfolder)
                 file_name = eval(f'self.padrao_{padrao:02}(rows)')
-                file_name = f'Arquivos/{file_name}'
+                file_name = f'{subfolder}/{file_name}'
                 print(['file_name', file_name])
                 #shutil.copy(path, file_name)
 
@@ -331,7 +503,13 @@ patterns: Dict[str, int] = {
     'WERUS METALÚRGICA E MANUTENÇÕES': 6,
     'Seu boleto chegou,': 7,
     'Local de Pagamento': 8,
-    '1 /': 9
+    '1 /': 9,
+    'Pix Copia e Cola': 10,
+    'Um banco exclusivo para empresas.': 11,
+    'Quem vai receber:': 12,
+    'LIGGA TELECOMUNICACOES SA': 13,
+    'NF-e': 14,
+    'R$': 15
 }
 
 
@@ -340,7 +518,7 @@ if __name__ == '__main__':
         aut = Aut(patterns)
         #aut.run()
         #count = aut.get_count()
-        aut.get_example('InstruÃ§Ãµes de ImpressÃ£o', 5)
+        aut.get_example('Recibo do Pagador', 5)
         #count = aut.get_count_tipo()
         # for key in count:
         #     print(f'{key}: {count[key]}')
