@@ -24,17 +24,19 @@ def main():
             pdf_reader = PdfReader(file)
             pdf_writer = PdfWriter()
             lotacao = ''
-
+            i = 0
+            if 'Estabelecimento:' in pdf_reader.pages[0].extract_text().split('\n')[4]:
+                i = 1
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
                 tipo = ' '.join(page[0].split()[:3])
                 # Verifica o tipo de arquivo
                 if tipo == 'Folha de Pagamento':
-                    lotacao_nova = page[5]
+                    lotacao_nova = page[5+i]
                 elif tipo == 'Listagem de Férias':
-                    lotacao_nova = page[4]
+                    lotacao_nova = page[4+i]
                 elif tipo == 'Listagem de Rescisão':
-                    lotacao_nova = page[4]
+                    lotacao_nova = page[4+i]
                 else:
                     print(tipo)
                     continue
@@ -58,6 +60,8 @@ def main():
                     pdf_writer.add_page(page_pdf)
                 else:
                     pdf_writer.add_page(page_pdf)
+
+
 
 
 if __name__ == '__main__':
