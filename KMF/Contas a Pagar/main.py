@@ -262,15 +262,30 @@ class Aut:
         Returns:
             str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
         """
-        for i, row in enumerate(rows):
-            if 'R$' in row:
-                row = rows[i + 1]
-                beneficiario = ' '.join(row.split()[3:])[2:]
-                valor = row.split()[2]
-                valor = valor[:valor.find(',') + 3]
-                break
+        if 'Local de Pagamento' in rows[0]:  # subpadrão 1
+            for i, row in enumerate(rows):
+                if 'R$' in row:
+                    row = rows[i + 1]
+                    beneficiario = ' '.join(row.split()[3:])[2:]
+                    valor = row.split()[2]
+                    valor = valor[:valor.find(',') + 3]
+                    row = rows[i + 2]
+                    num = row.split()[2]
+                    num = num[num.find('/') - 4:num.find('/') + 2]
+                    break
+        else:
+            # subpadrao 2
+            for i, row in enumerate(rows):
+                if 'Espécie Doc' in row:
+                    num = row.split()[0]
+                elif 'Valor do Documento' in row:
+                    valor = rows[i + 1].strip()
+                elif row.startswith('Sacado'):
+                    beneficiario = ' '.join(row.split()[1:-3])
+                    break
 
-        file_name = f'FOLK - {valor} - BOLETO - {beneficiario}.pdf'
+        file_name = f'FOLK - {valor} - BOLETO {num} - {beneficiario}.pdf'
+        file_name = file_name.replace('/', '')
         return file_name
 
     def padrao_09(self, rows: List[str]) -> str:
@@ -457,7 +472,7 @@ class Aut:
     def run(self) -> None:
         # Cria a pasta de destino dos arquivos.
         folder = 'Arquivos'
-        if os.path.exists(folder):
+        if not os.path.exists(folder):
             os.mkdir(folder)
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
@@ -477,15 +492,28 @@ class Aut:
                 padrao = max(self.patterns.get(rows[i], 0) for i in range(min(2, len(rows))))
                 if padrao == 0:  # Caso não seja encontrado nenhuma correspondência, o arquivo é ignorado.
                     continue
-                print([path, padrao])
                 subfolder = f'{folder}/{codigo}'
                 # Cria a pasta para este código.
                 if not os.path.exists(subfolder):
                     os.mkdir(subfolder)
-                file_name = eval(f'self.padrao_{padrao:02}(rows)')
+                try:
+                    file_name = eval(f'self.padrao_{padrao:02}(rows)')
+                except IndexError:
+                    print(padrao)
+                    print(path)
+                    exit()
                 file_name = f'{subfolder}/{file_name}'
-                print(['file_name', file_name])
-                #shutil.copy(path, file_name)
+                #print(['file_name', file_name])
+                try:
+                    shutil.copy(path, file_name)
+                except FileNotFoundError:
+                    # Caso o arquivo não seja encontrado, o nome do diretório será corrigido.
+                    try:
+                        path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
+                        shutil.copy(path, file_name)
+                    except FileNotFoundError:
+                        # Caso o arquivo ainda não seja encontrado, será ignorado.
+                        pass
 
                 """
                     Pode ocorrrer de o arquivo ter sido removido do diretório mas não do sistema, e ao tentar acessá-lo,
@@ -510,15 +538,17 @@ patterns: Dict[str, int] = {
     'LIGGA TELECOMUNICACOES SA': 13,
     'NF-e': 14,
     'R$': 15
+    #'Recibo do Pagador': 16
 }
 
-
-if __name__ == '__main__':
+aut = Aut(patterns)
+aut.run()
+if __name__ == 'q__main__':
     try:
         aut = Aut(patterns)
-        #aut.run()
+        aut.run()
         #count = aut.get_count()
-        aut.get_example('Recibo do Pagador', 5)
+        #aut.get_example(' Data do Processamento', 5)
         #count = aut.get_count_tipo()
         # for key in count:
         #     print(f'{key}: {count[key]}')
