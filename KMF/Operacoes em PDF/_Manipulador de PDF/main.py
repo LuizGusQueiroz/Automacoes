@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.7.3'
+VERSION: str = '0.7.4'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -472,7 +472,8 @@ def folha_rescisao_ferias() -> int:  # 6
         files = [file for file in os.listdir() if '.csv' in file]
         if len(files) != 1:
             return pd.DataFrame()
-        return pd.read_csv(files[0], header=None, sep=';', encoding='latin1', names=['cod', 'nome', 'cnpj', 'tomador'])
+        return pd.read_csv(files[0], header=None, sep=';', encoding='latin1',
+                           names=['cod', 'nome', 'cnpj', 'tomador'])
 
     tot_pags = 0
     df = get_tabela()
@@ -485,19 +486,22 @@ def folha_rescisao_ferias() -> int:  # 6
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
+            tot_pags += len(pdf_reader.pages)
             pdf_writer = PdfWriter()
             lotacao = ''
-
+            i = 0
+            if 'Estabelecimento:' in pdf_reader.pages[0].extract_text().split('\n')[4]:
+                i = 1
             for page_pdf in tqdm(pdf_reader.pages):
                 page = page_pdf.extract_text().split('\n')
                 tipo = ' '.join(page[0].split()[:3])
                 # Verifica o tipo de arquivo
                 if tipo == 'Folha de Pagamento':
-                    lotacao_nova = page[5]
+                    lotacao_nova = page[5 + i]
                 elif tipo == 'Listagem de Férias':
-                    lotacao_nova = page[4]
+                    lotacao_nova = page[4 + i]
                 elif tipo == 'Listagem de Rescisão':
-                    lotacao_nova = page[4]
+                    lotacao_nova = page[4 + i]
                 else:
                     print(tipo)
                     continue

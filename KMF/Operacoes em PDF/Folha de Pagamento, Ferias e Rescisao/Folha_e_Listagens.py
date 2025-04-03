@@ -22,6 +22,7 @@ def main():
         with open(arq, 'rb') as file:
             # Cria um objeto PdfFileReader para ler o conteúdo do arquivo PDF
             pdf_reader = PdfReader(file)
+            tot_pags += len(pdf_reader.pages)
             pdf_writer = PdfWriter()
             lotacao = ''
             i = 0
@@ -60,7 +61,7 @@ def main():
                     pdf_writer.add_page(page_pdf)
                 else:
                     pdf_writer.add_page(page_pdf)
-
+    return tot_pags
 
 
 
