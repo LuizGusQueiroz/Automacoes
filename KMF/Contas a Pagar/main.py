@@ -273,7 +273,7 @@ class Aut:
                     num = row.split()[2]
                     num = num[num.find('/') - 4:num.find('/') + 2]
                     break
-        else:
+        elif 'Recibo do Sacado' in rows[0]:
             # subpadrao 2
             for i, row in enumerate(rows):
                 if 'Espécie Doc' in row:
@@ -282,6 +282,18 @@ class Aut:
                     valor = rows[i + 1].strip()
                 elif row.startswith('Sacado'):
                     beneficiario = ' '.join(row.split()[1:-3])
+                    break
+        else:  # subpadrão 3
+            for i, row in enumerate(rows):
+                if 'Nome do Beneficiário' in row:
+                    beneficiario = rows[i + 1]
+                    beneficiario = beneficiario[:beneficiario.rfind('.CNPJ')]
+                elif '- (-) Descontos/Abatimentos' in row:
+                    valor = rows[i + 1]
+                    break
+            for row in rows:
+                if 'Espécie DOC' in row:
+                    num = row[:row.find('Espécie DOC')]
                     break
 
         file_name = f'FOLK - {valor} - BOLETO {num} - {beneficiario}.pdf'
@@ -498,6 +510,7 @@ class Aut:
                     os.mkdir(subfolder)
                 try:
                     file_name = eval(f'self.padrao_{padrao:02}(rows)')
+                    file_name = file_name.replace('/', '')
                 except (IndexError, UnboundLocalError) as e:
                     print(e)
                     print(padrao)

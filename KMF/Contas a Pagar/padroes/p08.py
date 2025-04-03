@@ -26,7 +26,7 @@ def padrao_08(rows: List[str]) -> str:
                 num = row.split()[2]
                 num = num[num.find('/')-4:num.find('/')+2]
                 break
-    else:
+    elif 'Recibo do Sacado' in rows[0]:
         # subpadrao 2
         for i, row in enumerate(rows):
             if 'Espécie Doc' in row:
@@ -36,7 +36,18 @@ def padrao_08(rows: List[str]) -> str:
             elif row.startswith('Sacado'):
                 beneficiario = ' '.join(row.split()[1:-3])
                 break
-
+    else:  # subpadrão 3
+        for i, row in enumerate(rows):
+            if 'Nome do Beneficiário' in row:
+                beneficiario = rows[i+1]
+                beneficiario = beneficiario[:beneficiario.rfind('.CNPJ')]
+            elif '- (-) Descontos/Abatimentos' in row:
+                valor = rows[i+1]
+                break
+        for row in rows:
+            if 'Espécie DOC' in row:
+                num = row[:row.find('Espécie DOC')]
+                break
 
     file_name = f'FOLK - {valor} - BOLETO {num} - {beneficiario}.pdf'
     file_name = file_name.replace('/', '')
@@ -58,7 +69,7 @@ def visualizar_texto_pdf(file: str) -> None:
 
 
 if __name__ == '__main__':
-    file = 'files/padrao_08.1.pdf'
+    file = 'files/padrao_08.3.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_08(rows)
