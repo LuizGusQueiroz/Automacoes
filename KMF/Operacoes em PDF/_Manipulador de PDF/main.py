@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.7.4'
+VERSION: str = '0.7.5'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -1111,6 +1111,7 @@ def recibos_pagamento_protheus() -> int:
                 # restando o nome entre os items 5 até o -3.
                 # Já a matrícula é o segundo item dessa linha.
                 nome = ' '.join(rows[3].split()[5:-3])
+                nome = nome.replace('/', '')
                 matricula = rows[3].split()[2]
                 centro_custo = ' '.join(rows[2].split()[5:-1])
                 cnpj = rows[1].split()[-1]
