@@ -454,17 +454,30 @@ class Aut:
         Returns:
             str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
         """
-        num = rows[1].split()[-1]
-        for i, row in enumerate(rows):
-            if row.startswith('MUNICÍPIO'):
-                row = rows[i + 1]
-                row = row[row.rfind('-'):]
-                beneficiario = ' '.join(row.split()[:-1])
-                beneficiario = beneficiario[beneficiario.find('-') + 4:]
-            elif row.startswith('FATURA'):
-                valor = rows[i + 1].split()[-1]
-                break
-
+        if len(rows[1]) > 6:
+            # Subpadrão 1
+            num = rows[1].split()[-1]
+            for i, row in enumerate(rows):
+                print(row, row.startswith('MUNICÍPIO'))
+                if row.startswith('MUNICÍPIO'):
+                    row = rows[i + 1]
+                    row = row[row.rfind('-'):]
+                    print('okokok')
+                    beneficiario = ' '.join(row.split()[:-1])
+                    beneficiario = beneficiario[beneficiario.find('-') + 4:]
+                elif row.startswith('FATURA'):
+                    valor = rows[i + 1].split()[-1]
+                    break
+        else:  # Subpadrão 2
+            for i, row in enumerate(rows):
+                if 'DATA DA EMISSÃO' in row:
+                    num = rows[i - 3]
+                elif 'FONE/FAX' in row:
+                    row = rows[i + 1]
+                    beneficiario = ' '.join(row.split()[:3])
+                elif row.startswith('BASE DE CÁLCULO DO ICMS'):
+                    valor = rows[i + 1].split()[-1]
+                    break
         file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
         return file_name
 
