@@ -262,7 +262,7 @@ class Aut:
         Returns:
             str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
         """
-        if 'Local de Pagamento' in rows[0]:  # subpadrão 1
+        if 'Local de Pagamento' in rows[0] and 'Beneficiário' in rows[1]:  # subpadrão 1
             for i, row in enumerate(rows):
                 if 'R$' in row:
                     row = rows[i + 1]
@@ -294,12 +294,22 @@ class Aut:
                 elif 'Valor do Documento' in row:
                     valor = rows[i + 1]
                     break
+        elif 'Local de Pagamento' in rows[0]:
+            # Subpadrão 5
+            num = rows[-1]
+            for i, row in enumerate(rows):
+                if '(=) Valor do documento' in row:
+                    valor = row.split()[-4][:-2]
+                elif '(+) Outros Acréscimos' in row:
+                    beneficiario = rows[i + 1][:-1]
+                    break
         else:  # subpadrão 3
+            valor = None
             for i, row in enumerate(rows):
                 if 'Nome do Beneficiário' in row:
                     beneficiario = rows[i + 1]
                     beneficiario = beneficiario[:beneficiario.rfind('.CNPJ')]
-                elif '- (-) Descontos/Abatimentos' in row:
+                elif '- (-) Descontos/Abatimentos' in row and valor is None:
                     valor = rows[i + 1]
                     break
             for row in rows:
