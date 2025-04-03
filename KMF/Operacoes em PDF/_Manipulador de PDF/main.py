@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.7.5'
+VERSION: str = '0.7.6'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
