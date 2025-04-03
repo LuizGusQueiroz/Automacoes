@@ -461,7 +461,7 @@ class Aut:
                 beneficiario = row[:row.find('CPF')].strip()
             elif '(=) Valor do Documento' in row:
                 valor = rows[i + 1].split()[0][:-3]
-            elif 'NUMERO(S) DA(S) NOTA(S)' in row:
+            elif 'NUMERO(S) DA(S)' in row:
                 num = row.split()[-1].replace('/', '')
                 break
 
@@ -498,7 +498,8 @@ class Aut:
                     os.mkdir(subfolder)
                 try:
                     file_name = eval(f'self.padrao_{padrao:02}(rows)')
-                except IndexError:
+                except (IndexError, UnboundLocalError) as e:
+                    print(e)
                     print(padrao)
                     print(path)
                     exit()

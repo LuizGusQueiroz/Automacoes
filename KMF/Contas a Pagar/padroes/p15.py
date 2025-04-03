@@ -20,7 +20,7 @@ def padrao_15(rows: List[str]) -> str:
             beneficiario = row[:row.find('CPF')].strip()
         elif '(=) Valor do Documento' in row:
             valor = rows[i+1].split()[0][:-3]
-        elif 'NUMERO(S) DA(S) NOTA(S)' in row:
+        elif 'NUMERO(S) DA(S)' in row:
             num = row.split()[-1].replace('/', '')
             break
 
@@ -42,9 +42,13 @@ def visualizar_texto_pdf(file: str) -> None:
         for i, row in enumerate(rows):
             print(i, row)
 
+#visualizar_texto_pdf('files/padrao_15.pdf')
+#print('='*50)
+#visualizar_texto_pdf('files/padrao_15.2.pdf')
+
 
 if __name__ == '__main__':
-    file = 'files/padrao_15.pdf'
+    file = 'files/padrao_15.2.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_15(rows)
