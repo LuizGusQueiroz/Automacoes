@@ -18,11 +18,9 @@ def padrao_14(rows: List[str]) -> str:
         # Subpadrão 1
         num = rows[1].split()[-1]
         for i, row in enumerate(rows):
-            print(row, row.startswith('MUNICÍPIO'))
             if row.startswith('MUNICÍPIO'):
                 row = rows[i+1]
                 row = row[row.rfind('-'):]
-                print('okokok')
                 beneficiario = ' '.join(row.split()[:-1])
                 beneficiario = beneficiario[beneficiario.find('-')+4:]
             elif row.startswith('FATURA'):
