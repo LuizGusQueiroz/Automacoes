@@ -283,6 +283,17 @@ class Aut:
                 elif row.startswith('Sacado'):
                     beneficiario = ' '.join(row.split()[1:-3])
                     break
+        elif 'Recibo do Pagador' in rows[0]:
+            # subpadrão 4
+            beneficiario = None
+            for i, row in enumerate(rows):
+                if 'Beneficiário' in row and beneficiario is None:
+                    beneficiario = ' '.join(row.split()[1:-3])
+                elif 'Especie Doc.' in row:
+                    num = row[:row.find('Especie Doc.')]
+                elif 'Valor do Documento' in row:
+                    valor = rows[i + 1]
+                    break
         else:  # subpadrão 3
             for i, row in enumerate(rows):
                 if 'Nome do Beneficiário' in row:
