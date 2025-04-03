@@ -35,9 +35,9 @@ def recibos_pagamento_protheus() -> int:
                 # restando o nome entre os items 5 até o -3.
                 # Já a matrícula é o segundo item dessa linha.
                 nome = ' '.join(rows[3].split()[5:-3])
-                nome = nome.replace('/', '')
                 matricula = rows[3].split()[2]
                 centro_custo = ' '.join(rows[2].split()[5:-1])
+                centro_custo = centro_custo.replace('/', '')
                 cnpj = rows[1].split()[-1]
                 # Formata o nome do arquivo com os dados encontrados.
                 file_name = f'Arquivos/{nome}-{matricula}-{centro_custo}-{cnpj}.pdf'
