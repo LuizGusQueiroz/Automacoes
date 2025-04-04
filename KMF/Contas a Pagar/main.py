@@ -118,6 +118,7 @@ class Aut:
                     n -= 1
                     if n==0:
                         return
+
     def padrao_01(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
@@ -127,18 +128,29 @@ class Aut:
         Returns:
             str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
         """
-        for row in rows:
-            if 'Nosso número' in row:
-                beneficiario = row[row.find('Nosso número') + 12:]
-            elif 'Espécie documento Aceite' in row:
-                num_nf = row[:row.find('Espécie')]
-            elif '(=) Valor do documento' in row:
-                valor = row[:row.find('(=)')]
-                break
-        file_name = f'FOLK - {valor} - BOLETO - NF{num_nf} - {beneficiario}.pdf'
+        if rows[2].startswith('Pagar preferencialmente'):
+            # Subpadrão 1
+            for row in rows:
+                if 'Nosso número' in row:
+                    beneficiario = row[row.find('Nosso número') + 12:]
+                elif 'Espécie documento Aceite' in row:
+                    num = row[:row.find('Espécie')]
+                elif '(=) Valor do documento' in row:
+                    valor = row[:row.find('(=)')]
+                    break
+        elif rows[2].startswith('Até o vencimento'):
+            # Subpadrão 2
+            beneficiario = None
+            for i, row in enumerate(rows):
+                num = ''
+                if 'Beneﬁciário' in row and beneficiario is None:
+                    beneficiario = rows[i + 1][:-5]
+                elif '(=) Valor do documento' in row:
+                    valor = rows[i + 1]
+                    break
+        file_name = f'FOLK - {valor} - BOLETO - NF{num} - {beneficiario}.pdf'
 
         return file_name
-
     def padrao_02(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
@@ -536,7 +548,7 @@ class Aut:
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
         # Percorre todos os códigos.
-        for codigo in tqdm(codigos):
+        for codigo in tqdm(codigos[255:]):
             # Lista todos os caminhos de arquivos atrelados a este código.
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
             for path in paths:
@@ -617,3 +629,4 @@ if __name__ == 'q__main__':
     except Exception as e:
         print(e)
         input()
+# 257
