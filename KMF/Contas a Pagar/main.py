@@ -341,6 +341,17 @@ class Aut:
                 elif '(+) Outros Acréscimos' in row:
                     beneficiario = rows[i + 1][:-1]
                     break
+        elif 'Local de Pagamento' in rows[1]:
+            # Subpadrão 6
+            for i, row in enumerate(rows):
+                if row.startswith('Beneficiário'):
+                    row = rows[i + 1]
+                    beneficiario = row[:row.find(' - CNPJ:')]
+                elif 'Espécie Doc.' in row:
+                    num = row[:row.find('Espécie Doc.')].replace('/', '')
+                elif '(=) Valor do Documento' in row:
+                    valor = rows[i + 1]
+                    break
         else:  # subpadrão 3
             valor = None
             for i, row in enumerate(rows):
@@ -559,7 +570,7 @@ class Aut:
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
         # Percorre todos os códigos.
-        for codigo in tqdm(codigos[405:]):
+        for codigo in tqdm(codigos[1250:]):
             # Lista todos os caminhos de arquivos atrelados a este código.
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
             for path in paths:

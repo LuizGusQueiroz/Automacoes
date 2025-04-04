@@ -56,6 +56,17 @@ def padrao_08(rows: List[str]) -> str:
             elif '(+) Outros Acréscimos' in row:
                 beneficiario = rows[i+1][:-1]
                 break
+    elif 'Local de Pagamento' in rows[1]:
+        # Subpadrão 6
+        for i, row in enumerate(rows):
+            if row.startswith('Beneficiário'):
+                row = rows[i+1]
+                beneficiario = row[:row.find(' - CNPJ:')]
+            elif 'Espécie Doc.' in row:
+                num = row[:row.find('Espécie Doc.')].replace('/', '')
+            elif '(=) Valor do Documento' in row:
+                valor = rows[i+1]
+                break
     else:  # subpadrão 3
         valor = None
         for i, row in enumerate(rows):
@@ -88,9 +99,8 @@ def visualizar_texto_pdf(file: str) -> None:
         for i, row in enumerate(rows):
             print(i, row)
 
-
 if __name__ == '__main__':
-    file = 'files/padrao_08.5.pdf'
+    file = 'files/padrao_08.6.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_08(rows)
