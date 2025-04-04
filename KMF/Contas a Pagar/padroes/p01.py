@@ -33,6 +33,16 @@ def padrao_01(rows: List[str]) -> str:
             elif '(=) Valor do documento' in row:
                 valor = rows[i+1]
                 break
+    elif rows[2].startswith('Pagável Preferencialmente'):
+        for i, row in enumerate(rows):
+            if 'Beneficiário' in row:
+                row = rows[i+1]
+                beneficiario = row[:row.find('Agência/Código')]
+            elif 'Espécie doc' in row:
+                num = row[:row.find('Espécie doc')].replace('/', '')
+            elif '(=) Valor do Documento' in row:
+                valor = rows[i+1]
+                break
     file_name = f'FOLK - {valor} - BOLETO - NF{num} - {beneficiario}.pdf'
 
     return file_name
@@ -51,9 +61,12 @@ def visualizar_texto_pdf(file: str) -> None:
         for i, row in enumerate(rows):
             print(i, row)
 
+# visualizar_texto_pdf('files/padrao_01.2.pdf')
+# print('='*50)
+# visualizar_texto_pdf('files/padrao_01.3.pdf')
 
 if __name__ == '__main__':
-    file = 'files/padrao_01.2.pdf'
+    file = 'files/padrao_01.3.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_01(rows)

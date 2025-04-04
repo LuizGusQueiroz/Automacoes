@@ -148,9 +148,20 @@ class Aut:
                 elif '(=) Valor do documento' in row:
                     valor = rows[i + 1]
                     break
+        elif rows[2].startswith('Pagável Preferencialmente'):
+            for i, row in enumerate(rows):
+                if 'Beneficiário' in row:
+                    row = rows[i + 1]
+                    beneficiario = row[:row.find('Agência/Código')]
+                elif 'Espécie doc' in row:
+                    num = row[:row.find('Espécie doc')].replace('/', '')
+                elif '(=) Valor do Documento' in row:
+                    valor = rows[i + 1]
+                    break
         file_name = f'FOLK - {valor} - BOLETO - NF{num} - {beneficiario}.pdf'
 
         return file_name
+
     def padrao_02(self, rows: List[str]) -> str:
         """
         Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
@@ -548,7 +559,7 @@ class Aut:
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
         # Percorre todos os códigos.
-        for codigo in tqdm(codigos[255:]):
+        for codigo in tqdm(codigos[405:]):
             # Lista todos os caminhos de arquivos atrelados a este código.
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
             for path in paths:
