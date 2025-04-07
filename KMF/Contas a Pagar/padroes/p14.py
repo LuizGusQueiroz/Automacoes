@@ -14,13 +14,21 @@ def padrao_14(rows: List[str]) -> str:
     Returns:
         str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
     """
-    if 'DATA DE RECEBIMENTO' in rows[1]:
+    if 'DATA DE RECEBIMENTO' in rows[1] and not rows[1][-1].isnumeric():
         # Subpadrão 3
         for row in rows:
             if 'VALOR TOTAL: ' in row:
                 valor = row.split()[2]
                 beneficiario = ' '.join(row.split()[4: 7])
                 num = row.split()[-1]
+                break
+    elif 'DATA DE RECEBIMENTO' in rows[1] and rows[1][-1].isnumeric():
+        # Subpadrão 4
+        num = ''.join(char for char in rows[1].split()[-1] if char.isnumeric())
+        for i, row in enumerate(rows):
+            if 'INSCRIÇÃO ESTADUAL UF' in row:
+                beneficiario =  ' '.join(rows[i+4].split()[-4:])
+                valor = rows[i+11]
                 break
     elif len(rows[1]) > 6:
         # Subpadrão 1
@@ -63,7 +71,7 @@ def visualizar_texto_pdf(file: str) -> None:
 
 
 if __name__ == '__main__':
-    file = 'files/padrao_14.3.pdf'
+    file = 'files/padrao_14.4.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_14(rows)

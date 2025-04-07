@@ -513,13 +513,21 @@ class Aut:
         Returns:
             str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
         """
-        if 'DATA DE RECEBIMENTO' in rows[1]:
+        if 'DATA DE RECEBIMENTO' in rows[1] and not rows[1][-1].isnumeric():
             # Subpadrão 3
             for row in rows:
                 if 'VALOR TOTAL: ' in row:
                     valor = row.split()[2]
                     beneficiario = ' '.join(row.split()[4: 7])
                     num = row.split()[-1]
+                    break
+        elif 'DATA DE RECEBIMENTO' in rows[1] and rows[1][-1].isnumeric():
+            # Subpadrão 4
+            num = ''.join(char for char in rows[1].split()[-1] if char.isnumeric())
+            for i, row in enumerate(rows):
+                if 'INSCRIÇÃO ESTADUAL UF' in row:
+                    beneficiario = ' '.join(rows[i + 4].split()[-4:])
+                    valor = rows[i + 11]
                     break
         elif len(rows[1]) > 6:
             # Subpadrão 1
@@ -578,7 +586,7 @@ class Aut:
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
         # Percorre todos os códigos.
-        for codigo in tqdm(codigos[1650:]):
+        for codigo in tqdm(codigos[1830:]):
             # Lista todos os caminhos de arquivos atrelados a este código.
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
             for path in paths:
