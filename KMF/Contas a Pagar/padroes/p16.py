@@ -53,6 +53,23 @@ def padrao_16(rows: List[str]) -> str:
                 num = rows[i+1].split()[0]
                 valor = rows[i+1].split()[-1]
                 break
+    elif rows[4].endswith('CNPJ'):
+        # Subpadrão 5.
+        for i, row in enumerate(rows):
+            if 'beneficiário' in row:
+                beneficiario = ' '.join(row.split()[:-2])
+            elif 'Nosso número' in row:
+                num = ''.join(char for char in row if char.isnumeric())
+                valor = rows[i+3]
+                break
+    elif rows[4].startswith('Beneficiário'):
+        # Subpadrão 6.
+        beneficiario = ' '.join(rows[4].split()[1:-1])
+        for i, row in enumerate(rows):
+            if 'Número do Documento' in row:
+                valor = row[:row.find('Número do Documento')]
+                num = rows[i+1].split()[0].replace('/', '')
+                break
 
     file_name = f'FOLK - R$ {valor} - NF - {num} - {beneficiario}.pdf'
     return file_name
@@ -73,7 +90,7 @@ def visualizar_texto_pdf(file: str) -> None:
 
 
 if __name__ == '__main__':
-    file = 'files/padrao_16.4.pdf'
+    file = 'files/padrao_16.6.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_16(rows)

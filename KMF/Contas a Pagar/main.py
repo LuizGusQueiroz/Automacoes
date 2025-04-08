@@ -628,6 +628,23 @@ class Aut:
                     num = rows[i + 1].split()[0]
                     valor = rows[i + 1].split()[-1]
                     break
+        elif rows[4].endswith('CNPJ'):
+            # Subpadrão 5.
+            for i, row in enumerate(rows):
+                if 'beneficiário' in row:
+                    beneficiario = ' '.join(row.split()[:-2])
+                elif 'Nosso número' in row:
+                    num = ''.join(char for char in row if char.isnumeric())
+                    valor = rows[i + 3]
+                    break
+        elif rows[4].startswith('Beneficiário'):
+            # Subpadrão 6.
+            beneficiario = ' '.join(rows[4].split()[1:-1])
+            for i, row in enumerate(rows):
+                if 'Número do Documento' in row:
+                    valor = row[:row.find('Número do Documento')]
+                    num = rows[i + 1].split()[0].replace('/', '')
+                    break
 
         file_name = f'FOLK - R$ {valor} - NF - {num} - {beneficiario}.pdf'
         return file_name
@@ -702,7 +719,7 @@ patterns: Dict[str, int] = {
     'Quem vai receber:': 12,
     'LIGGA TELECOMUNICACOES SA': 13,
     'NF-e': 14,
-    'R$': 15
+    'R$': 15,
     'Recibo do Pagador': 16
 }
 
