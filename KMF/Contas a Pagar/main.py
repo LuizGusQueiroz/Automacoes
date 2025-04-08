@@ -104,7 +104,7 @@ class Aut:
     def get_example(self, identificador: str, n: int=1):
         paths: List[str] = self.df['path'].unique().tolist()[::-1]
         # Percorre todos os arquivos
-        for path in tqdm(paths):
+        for path in tqdm(paths[::-1]):
             rows: List[str] = self.get_rows(path)
             if rows is None:
                 continue
@@ -578,6 +578,26 @@ class Aut:
 
         return file_name
 
+    def padrao_16(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        for i, row in enumerate(rows):
+            if 'Beneficiário:' in row:
+                beneficiario = ' '.join(row.split()[1:])
+            elif '(=) Valor do documento' in row:
+                row = rows[i + 1]
+                valor = row.split()[-2]
+                num = row.split()[-3]
+                break
+        file_name = f'FOLK - R$ {valor} - NF - {num} - {beneficiario}.pdf'
+        return file_name
+
     def run(self) -> None:
         # Cria a pasta de destino dos arquivos.
         folder = 'Arquivos'
@@ -649,22 +669,22 @@ patterns: Dict[str, int] = {
     'LIGGA TELECOMUNICACOES SA': 13,
     'NF-e': 14,
     'R$': 15
-    #'Recibo do Pagador': 16
+    'Recibo do Pagador': 16
 }
 
-aut = Aut(patterns)
-aut.run()
-if __name__ == 'q__main__':
+#aut = Aut(patterns)
+#aut.run()
+if __name__ == '__main__':
     try:
         aut = Aut(patterns)
-        aut.run()
+        #aut.run()
+
+        aut.get_example('Recibo do Pagador', 8)
         #count = aut.get_count()
-        #aut.get_example(' Data do Processamento', 5)
-        #count = aut.get_count_tipo()
-        # for key in count:
-        #     print(f'{key}: {count[key]}')
+        #for key in count:
+        #    print(f'{key}: {count[key]}')
 
     except Exception as e:
         print(e)
         input()
-# 257
+
