@@ -12,14 +12,48 @@ def padrao_16(rows: List[str]) -> str:
     Returns:
         str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
     """
-    for i, row in enumerate(rows):
-        if 'Beneficiário:' in row:
-            beneficiario = ' '.join(row.split()[1:])
-        elif '(=) Valor do documento' in row:
-            row = rows[i+1]
-            valor = row.split()[-2]
-            num = row.split()[-3]
-            break
+    if 'ANS 372609' in rows[0]:
+        # Subpadrão 1
+        for i, row in enumerate(rows):
+            if 'Beneficiário:' in row:
+                beneficiario = ' '.join(row.split()[1:])
+            elif '(=) Valor do documento' in row:
+                row = rows[i+1]
+                valor = row.split()[-2]
+                num = row.split()[-3]
+                break
+    elif 'Número do documento CPF/CNPJ' in rows[4]:
+        # Subpadrão 2
+        for i, row in enumerate(rows):
+            if 'Beneﬁciário' in row:
+                row = rows[i+1]
+                beneficiario = ' '.join(row.split()[:-3])
+                row = rows[i+3]
+                num = row.split()[0]
+                valor = row.split()[-1]
+                break
+    elif 'Agência / Código do Beneficiário' in rows[4]:
+        # Subpadrão 3
+        for i, row in enumerate(rows):
+            if 'Carteira / Nosso númer' in row:
+                row = rows[i+1]
+                beneficiario = ' '.join(row.split()[:3])
+            elif 'Valor documento' in row:
+                num = rows[i+1]
+                valor = rows[i+4]
+                break
+    elif 'Número do documento CPF/CNPJ' in rows[7]:
+        # Subpadrão 4
+        for row in rows:
+            if 'Beneﬁciário' in row:
+                beneficiario = ' '.join(row.split()[1:])
+                break
+        for i, row in enumerate(rows):
+            if 'Número do documento CPF/CNPJ' in row:
+                num = rows[i+1].split()[0]
+                valor = rows[i+1].split()[-1]
+                break
+
     file_name = f'FOLK - R$ {valor} - NF - {num} - {beneficiario}.pdf'
     return file_name
 
@@ -39,7 +73,7 @@ def visualizar_texto_pdf(file: str) -> None:
 
 
 if __name__ == '__main__':
-    file = 'files/padrao_16.pdf'
+    file = 'files/padrao_16.4.pdf'
     with open(file, 'rb') as file_b:
         rows: List[str] = PdfReader(file_b).pages[0].extract_text().split('\n')
         file_name = padrao_16(rows)
