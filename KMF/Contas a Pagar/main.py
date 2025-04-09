@@ -649,6 +649,28 @@ class Aut:
         file_name = f'FOLK - R$ {valor} - NF - {num} - {beneficiario}.pdf'
         return file_name
 
+    def padrao_17(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        for i, row in enumerate(rows):
+            if 'Carteira / Nosso númer' in row:
+                beneficiario = rows[i + 1]
+            elif 'Valor documento' in row:
+                num = rows[i + 1]
+            elif '(-) Desconto / Abatimentos' in row:
+                valor = rows[i - 1]
+                break
+
+        file_name = f'FOLK - {valor} - BOLETO - {num} - {beneficiario}.pdf'
+
+        return file_name
+
     def run(self) -> None:
         # Cria a pasta de destino dos arquivos.
         folder = 'Arquivos'
@@ -720,7 +742,8 @@ patterns: Dict[str, int] = {
     'LIGGA TELECOMUNICACOES SA': 13,
     'NF-e': 14,
     'R$': 15,
-    'Recibo do Pagador': 16
+    'Recibo do Pagador': 16,
+    'Instruções de Impressão': 17
 }
 
 #aut = Aut(patterns)
@@ -730,7 +753,7 @@ if __name__ == '__main__':
         aut = Aut(patterns)
         #aut.run()
 
-        aut.get_example('Recibo do Pagador', 8)
+        aut.get_example('DATA DE RECEBIMENTO IDENTIFICAÇÃO E ASSINATURA DO RECEBEDORNF-e', 5)
         #count = aut.get_count()
         #for key in count:
         #    print(f'{key}: {count[key]}')
