@@ -671,6 +671,24 @@ class Aut:
 
         return file_name
 
+    def padrao_18(self, rows: List[str]) -> str:
+        """
+        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
+        Args:
+            rows (List[str]): Lista de linhas da página do pdf.
+
+        Returns:
+            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
+        """
+        num = rows[2].split()[-1]
+        valor = rows[3].split()[-1]
+        if 'CPF/CNPJ:' in rows[3]:
+            beneficiario = ' '.join(rows[3].split()[5:-7])
+        else:
+            beneficiario = ' '.join(rows[3].split()[7:-5])
+        file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
+        return file_name
+
     def run(self) -> None:
         # Cria a pasta de destino dos arquivos.
         folder = 'Arquivos'
@@ -743,7 +761,8 @@ patterns: Dict[str, int] = {
     'NF-e': 14,
     'R$': 15,
     'Recibo do Pagador': 16,
-    'Instruções de Impressão': 17
+    'Instruções de Impressão': 17,
+    'DATA DE RECEBIMENTO IDENTIFICAÇÃO E ASSINATURA DO RECEBEDORNF-e': 18
 }
 
 #aut = Aut(patterns)
