@@ -545,6 +545,20 @@ class Aut:
         file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
         return file_name
 
+    def padrao_19(self, rows: List[str]) -> str:
+        for i, row in enumerate(rows):
+            if row.startswith('Beneficiário'):
+                beneficiario = ' '.join(rows[i + 1].split()[:-2])
+            elif 'Espécie Doc.' in row:
+                num = ''.join(char for char in row if char.isnumeric())
+            elif '(=) Valor do Documento' in row:
+                valor = rows[i + 1].strip()
+                break
+
+        file_name = f'FOLK - {valor} - BOLETO - {num} - {beneficiario}.pdf'
+
+        return file_name
+
     def run(self) -> None:
         # Cria a pasta de destino dos arquivos.
         folder = 'Arquivos'
@@ -628,7 +642,7 @@ if __name__ == '__main__':
         aut = Aut(patterns)
         #aut.run()
 
-        aut.get_example('DATA DE RECEBIMENTO IDENTIFICAÇÃO E ASSINATURA DO RECEBEDORNF-e', 5)
+        aut.get_example('Em caso de dúvidas, de posse do comprovante, contate seu gerente ou a Central no 40901685 (capitais e regiões metropolitanas) ou 0800 7701685(demais localidades). Reclamações, informações e cancelamentos: SAC 0800 728 0728, ', 5)
         #count = aut.get_count()
         #for key in count:
         #    print(f'{key}: {count[key]}')
