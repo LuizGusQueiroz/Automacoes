@@ -120,14 +120,6 @@ class Aut:
                         return
 
     def padrao_01(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         if rows[2].startswith('Pagar preferencialmente'):
             # Subpadrão 1
             for row in rows:
@@ -163,14 +155,6 @@ class Aut:
         return file_name
 
     def padrao_02(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         num_nf = rows[1].split()[0]
         for i, row in enumerate(rows):
             if 'CONTROLE DO FISCODANFE' in row:
@@ -182,14 +166,6 @@ class Aut:
         return file_name
 
     def padrao_03(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         beneficiario = rows[1]
         for row in rows:
             if '(=)' in row:
@@ -201,14 +177,6 @@ class Aut:
         return file_name
 
     def padrao_04(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         for row in rows:
             if row.startswith('Número da Fatura:'):
                 num = row.split()[-1]
@@ -219,14 +187,6 @@ class Aut:
         return file_name
 
     def padrao_05(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         if 'Página' in rows[2]:
             # Subpadrão 2
             for i, row in enumerate(rows):
@@ -254,14 +214,6 @@ class Aut:
         return file_name
 
     def padrao_06(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         beneficiario = rows[0]
         for row in rows:
             if 'Série:' in row:
@@ -275,14 +227,6 @@ class Aut:
         return file_name
 
     def padrao_07(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         beneficiario = rows[1]
         for row in rows:
             if 'R$' in row:
@@ -292,14 +236,6 @@ class Aut:
         return file_name
 
     def padrao_08(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         if 'Local de Pagamento' in rows[0] and 'Beneficiário' in rows[1]:  # subpadrão 1
             for i, row in enumerate(rows):
                 if 'R$' in row:
@@ -371,14 +307,6 @@ class Aut:
         return file_name
 
     def padrao_09(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         beneficiario = rows[2][:-15]
         num = rows[3]
 
@@ -390,14 +318,6 @@ class Aut:
         return file_name
 
     def padrao_10(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         for i, row in enumerate(rows):
             if '( = ) Valor Cobrado' in row:
                 num = rows[i + 1].split()[-1]
@@ -411,14 +331,6 @@ class Aut:
         return file_name
 
     def padrao_11(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         beneficiario = None
         for i, row in enumerate(rows):
             if 'Espécie Doc' in row:
@@ -435,14 +347,6 @@ class Aut:
         return file_name
 
     def padrao_12(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         beneficiario = None
         for i, row in enumerate(rows):
             if 'R$' in row:
@@ -458,14 +362,6 @@ class Aut:
         return file_name
 
     def padrao_13(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         # O modelo 13 (Ligga) tem 3 submodelos.
         if 'CPF/CNPJ' in rows[7]:
             # Modelo 13.1
@@ -505,14 +401,6 @@ class Aut:
         return file_name
 
     def padrao_14(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         if 'DATA DE RECEBIMENTO' in rows[1] and not rows[1][-1].isnumeric():
             # Subpadrão 3
             for row in rows:
@@ -555,14 +443,6 @@ class Aut:
         return file_name
 
     def padrao_15(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         beneficiario = None
         for i, row in enumerate(rows):
             if row.startswith('Pagador'):
@@ -579,14 +459,6 @@ class Aut:
         return file_name
 
     def padrao_16(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         if 'ANS 372609' in rows[0]:
             # Subpadrão 1
             for i, row in enumerate(rows):
@@ -650,14 +522,6 @@ class Aut:
         return file_name
 
     def padrao_17(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         for i, row in enumerate(rows):
             if 'Carteira / Nosso númer' in row:
                 beneficiario = rows[i + 1]
@@ -672,14 +536,6 @@ class Aut:
         return file_name
 
     def padrao_18(self, rows: List[str]) -> str:
-        """
-        Encontra o nome e o cpf do funionário na lista de linhas da página pdf e retorna um nome de arquivo formatado.
-        Args:
-            rows (List[str]): Lista de linhas da página do pdf.
-
-        Returns:
-            str: O nome formatado para o arquivo. No modelo '{nome}-{cpf}.pdf'.
-        """
         num = rows[2].split()[-1]
         valor = rows[3].split()[-1]
         if 'CPF/CNPJ:' in rows[3]:
