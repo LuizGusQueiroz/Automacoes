@@ -559,6 +559,19 @@ class Aut:
 
         return file_name
 
+    def padrao_20(self, rows: List[str]) -> str:
+        for i, row in enumerate(rows):
+            if 'Data de Emissão' in row:
+                num = ''.join(char for char in row if char.isnumeric())
+            elif 'Nome/Razão Social' in row:
+                beneficiario = ' '.join(row.split()[2:])
+        for row in rows:
+            if 'Valor dos serviços' in row:
+                valor = row.split()[5]
+                break
+        file_name = f'FOLK - {valor} - NF{num} - {beneficiario}.pdf'
+        return file_name
+
     def run(self) -> None:
         # Cria a pasta de destino dos arquivos.
         folder = 'Arquivos'
@@ -642,7 +655,7 @@ if __name__ == '__main__':
         aut = Aut(patterns)
         #aut.run()
 
-        aut.get_example('Em caso de dúvidas, de posse do comprovante, contate seu gerente ou a Central no 40901685 (capitais e regiões metropolitanas) ou 0800 7701685(demais localidades). Reclamações, informações e cancelamentos: SAC 0800 728 0728, ', 5)
+        aut.get_example('Prefeitura Municipal de Vitória', 5)
         #count = aut.get_count()
         #for key in count:
         #    print(f'{key}: {count[key]}')
