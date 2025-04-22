@@ -6,6 +6,7 @@ import pandas as pd
 
 def main():
     def get_tabela() -> pd.DataFrame:
+        # Encontra a tabela com a relação de lotação->CNPJ.
         files = [file for file in os.listdir() if '.csv' in file]
         if len(files) != 1:
             return pd.DataFrame()
@@ -40,6 +41,8 @@ def main():
                     lotacao_nova = page[4+i]
                 else:
                     print(tipo)
+                    continue
+                if len(lotacao_nova.split()[0]) > 3:
                     continue
                 # Verifica se já há umas pasta para o tipo
                 if not os.path.exists(f'Arquivos/{tipo}'):

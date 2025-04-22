@@ -19,7 +19,7 @@ import os
 #                             Menus e Configurações
 # ===================================================================
 
-VERSION: str = '0.7.6'
+VERSION: str = '0.7.7'
 
 main_msg: str = '''
  0: Ajuda (Informações) 
@@ -469,11 +469,11 @@ def fichas_de_registro() -> int:  # 5
 
 def folha_rescisao_ferias() -> int:  # 6
     def get_tabela() -> pd.DataFrame:
+        # Encontra a tabela com a relação de lotação->CNPJ.
         files = [file for file in os.listdir() if '.csv' in file]
         if len(files) != 1:
             return pd.DataFrame()
-        return pd.read_csv(files[0], header=None, sep=';', encoding='latin1',
-                           names=['cod', 'nome', 'cnpj', 'tomador'])
+        return pd.read_csv(files[0], header=None, sep=';', encoding='latin1', names=['cod', 'nome', 'cnpj', 'tomador'])
 
     tot_pags = 0
     df = get_tabela()
@@ -497,13 +497,15 @@ def folha_rescisao_ferias() -> int:  # 6
                 tipo = ' '.join(page[0].split()[:3])
                 # Verifica o tipo de arquivo
                 if tipo == 'Folha de Pagamento':
-                    lotacao_nova = page[5 + i]
+                    lotacao_nova = page[5+i]
                 elif tipo == 'Listagem de Férias':
-                    lotacao_nova = page[4 + i]
+                    lotacao_nova = page[4+i]
                 elif tipo == 'Listagem de Rescisão':
-                    lotacao_nova = page[4 + i]
+                    lotacao_nova = page[4+i]
                 else:
                     print(tipo)
+                    continue
+                if len(lotacao_nova.split()[0]) > 3:
                     continue
                 # Verifica se já há umas pasta para o tipo
                 if not os.path.exists(f'Arquivos/{tipo}'):
