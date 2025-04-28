@@ -71,6 +71,7 @@ def get_last_version():
     # Parâmetros da consulta, para buscar commits de um arquivo específico
     params = {'path': "KMF/Operacoes em PDF/_Manipulador de PDF/main.exe"}
     try:
+
         # Envia a requisição GET para a API do GitHub
         response = requests.get(url, params=params)
         response.raise_for_status()  # Levanta uma exceção se houver um erro na requisição
