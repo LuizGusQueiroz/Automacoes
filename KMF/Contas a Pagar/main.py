@@ -109,7 +109,8 @@ class Aut:
             if rows is None:
                 continue
             for i in range(min(len(rows), 3)):
-                if rows[i] == identificador:
+                #if rows[i] == identifi=cador:
+                if identificador in rows[i]:
                     try:
                         shutil.copy(path, f'exemplo{n}.pdf')
                     except FileNotFoundError:
@@ -118,6 +119,7 @@ class Aut:
                     n -= 1
                     if n==0:
                         return
+                    break
 
     def padrao_01(self, rows: List[str]) -> str:
         if rows[2].startswith('Pagar preferencialmente'):
@@ -593,7 +595,7 @@ class Aut:
         # Lista todos os códigos de pedido.
         codigos = self.df['ped_codigo'].unique()
         # Percorre todos os códigos.
-        for codigo in tqdm(codigos[1830:]):
+        for codigo in tqdm(codigos):
             # Lista todos os caminhos de arquivos atrelados a este código.
             paths = self.df[self.df['ped_codigo'] == codigo]['path']
             for path in paths:
@@ -633,10 +635,6 @@ class Aut:
                         # Caso o arquivo ainda não seja encontrado, será ignorado.
                         pass
 
-                """
-                    Pode ocorrrer de o arquivo ter sido removido do diretório mas não do sistema, e ao tentar acessá-lo,
-                gerar erro, ou o pdf pode estar em um formato inválido ou corrompido, gerando erros também.
-                """
 
 
 
@@ -646,7 +644,7 @@ patterns: Dict[str, int] = {
     'Banco do Brasil S/A 001-9Beneficiário': 3,
     'Telefônica Brasil S/A': 4,
     'DANFSe v1.0': 5,
-    'WERUS METALÚRGICA E MANUTENÇÕES': 6,
+    # 'WERUS METALÚRGICA E MANUTENÇÕES': 6,
     'Seu boleto chegou,': 7,
     'Local de Pagamento': 8,
     '1 /': 9,
@@ -658,19 +656,22 @@ patterns: Dict[str, int] = {
     'R$': 15,
     'Recibo do Pagador': 16,
     'Instruções de Impressão': 17,
-    'DATA DE RECEBIMENTO IDENTIFICAÇÃO E ASSINATURA DO RECEBEDORNF-e': 18
+    'DATA DE RECEBIMENTO IDENTIFICAÇÃO E ASSINATURA DO RECEBEDORNF-e': 18,
+    'Em caso de dúvidas, de posse do comprovante, contate seu gerente ou a Central no 40901685 (capitais e regiões metropolitanas) ou 0800 7701685(demais localidades). Reclamações, informações e cancelamentos: SAC 0800 728 0728,': 19,
+    'Prefeitura Municipal de Vitória': 20,
+    'WERUS METALÚRGICA E MANUTENÇÕES': 21
 }
 
-#aut = Aut(patterns)
-#aut.run()
+
 if __name__ == '__main__':
     try:
         aut = Aut(patterns)
         #aut.run()
 
-        aut.get_example('WERUS METALÚRGICA E MANUTENÇÕES', 5)
+        aut.get_example('Nota de Débito n°', 5)
         #count = aut.get_count()
         #for key in count:
+
         #    print(f'{key}: {count[key]}')
 
     except Exception as e:
