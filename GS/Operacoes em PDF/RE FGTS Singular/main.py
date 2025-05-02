@@ -1,15 +1,16 @@
-import os
-from PyPDF2 import PdfReader, PdfWriter
-from tqdm import tqdm
-import pandas as pd
-from typing import List, Dict
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.errors import HttpError
 from googleapiclient.discovery import build
+from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
+from typing import List, Dict
+from tqdm import tqdm
+import pandas as pd
+import openpyxl
 import time
+import os
 
 
 class Aut:
@@ -102,6 +103,8 @@ class Aut:
 
     def processa_pdfs(self) -> None:
         self.init_dir()  # Inicializa o diretório de destino de arquivos.
+        n_encontrados = PdfWriter()  # Writer para arquivos onde o nome não foi encotrado.
+        not_found_name = f'{self.dest}/{self.not_found_name}.pdf'
         # Lista todos os arquivos pdf no diretório.
         files = [file for file in os.listdir() if '.pdf' in file.lower()]
         for file in files:
@@ -115,19 +118,26 @@ class Aut:
                     rows: List[str] = page.extract_text().split('\n')
                     nome: str = self.get_nome(rows)
                     file_name = f'{self.dest}/{nome}.pdf'
+                    # Verifica se é um arquivo com nome não encontrado.
+                    # Este tratamento não previne erros, apenas garante performace,
+                    # para não ser necessário sempre reabrir este arquivo e salvar suas páginas novamente.
+                    if file_name == not_found_name:
+                        n_encontrados.add_page(page)
+                        continue
                     # Cria um writer.
                     writer = PdfWriter()
                     # Verifica se o arquivo com este nome já existe,
                     # caso exista, junta todas as suas páginas com a atual.
                     if os.path.exists(file_name):
-                        old_pdf = PdfReader(file_name)
-                        for old_page in old_pdf.pages:
-                            writer.add_page(old_page)
+                        writer.append(file_name)
                     # Adiciona a página atual ao objeto PdfWriter.
                     writer.add_page(page)
                     # Salva o arquivo.
-                    with open(file_name, 'wb') as output_file:
-                        writer.write(output_file)
+                    with open(file_name, 'wb') as output:
+                        writer.write(output)
+        # Salva o arquivo de arquivos não encontrados.
+        with open(not_found_name, 'wb') as output:
+            n_encontrados.write(output)
 
 
 if __name__ == '__main__':
