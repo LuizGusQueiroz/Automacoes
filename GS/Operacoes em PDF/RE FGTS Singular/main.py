@@ -14,9 +14,11 @@ import os
 
 
 class Aut:
-    def __init__(self, dest: str = 'Arquivos', not_found_name: str = '_Nao_Encontrados'):
+    def __init__(self, dest: str = 'Arquivos', not_found_name: str = '_Nao_Encontrados',
+                 not_found_empr: str = 'Sem Empregador'):
         self.dest: str = dest  # Diretório de destino dos arquivos.
         self.not_found_name: str = not_found_name  # Nome padrão para nomes não encontrados.
+        self.not_found_empr: str = not_found_empr  # Nome padrão para empregador não encontrado.
         self.rel: Dict[str, str] = self.get_relacao()
         self.n_pags: int = 0  # Total de páginas processadas.
 
@@ -95,6 +97,16 @@ class Aut:
             nome = self.not_found_name
         return nome
 
+    def get_empregador(self, rows: List[str]) -> str:
+        for row in rows:
+            if 'Nome Empregador:' in row:
+                empregador = ' '.join(row.split()[5:])
+                # Remove caracteres especiais.
+                for char in ['\\', '/', '.']:
+                    empregador = empregador.replace(char, '')
+                return empregador
+        return self.not_found_empr
+
     def run(self) -> None:
         st = time.time()
         self.processa_pdfs()
@@ -117,11 +129,16 @@ class Aut:
                     # Converte o texto do pdf em uma lista do conteúdo das linhas.
                     rows: List[str] = page.extract_text().split('\n')
                     nome: str = self.get_nome(rows)
-                    file_name = f'{self.dest}/{nome}.pdf'
+                    empregador: str = self.get_empregador(rows)
+                    # Verifica se a pasta para o empregador já existe.
+                    if not os.path.exists(f'{self.dest}/{empregador}'):
+                        os.mkdir(f'{self.dest}/{empregador}')
+
+                    file_name = f'{self.dest}/{empregador}/{nome}.pdf'
                     # Verifica se é um arquivo com nome não encontrado.
                     # Este tratamento não previne erros, apenas garante performace,
                     # para não ser necessário sempre reabrir este arquivo e salvar suas páginas novamente.
-                    if file_name == not_found_name:
+                    if self.not_found_name in file_name:
                         n_encontrados.add_page(page)
                         continue
                     # Cria um writer.
