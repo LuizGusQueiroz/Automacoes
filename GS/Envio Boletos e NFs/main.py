@@ -6,12 +6,11 @@ import os
 
 
 class Aut:
-    def __init__(self, dir_bol: str, dir_nfs: str, dest: str = 'Arquivos') -> None:
+    def __init__(self, dir_bol: str, dir_nfs: str, dest: str = 'Arquivos', dir_falhas: str = 'Falhas') -> None:
         self.dir_bol = dir_bol  # Diretório dos boletos.
-        self.nfs_dir = dir_nfs  # Diretório das notas fiscais.
+        self.dir_nfs = dir_nfs  # Diretório das notas fiscais.
         self.dest = dest  # Diretório de destino dos arquivos.
-        self.dest_bol = f'{dest}/BOLETOS'  # Diretório de destino dos boletos.
-        self.dest_nfs = f'{dest}/NOTAS FISCAIS'  # Diretório de destino das notas fiscais.
+        self.dest_falhas = f'{dest}/{dir_falhas}'  # Diretório de destino de arquivos que falharam.
 
     def init_dir(self, diretorio: str) -> None:
         """Inicializa o diretório fornecido."""
@@ -35,22 +34,35 @@ class Aut:
         cnpj = ''.join([char for char in cnpj if char.isnumeric()])
         return cnpj
 
-    def processa_boletos(self) -> None:
+    def processa_arquivos(self, tipo: str) -> None:
+        if tipo == 'BOLETOS':
+            diretorio = self.dir_bol
+        elif tipo == 'NFs':
+            diretorio = self.dir_nfs
+        else:
+            raise TypeError(tipo)
+
         # Lista os arquivos do diretório de boletos.
-        arquivos: List[str] = os.listdir(self.dir_bol)
-        for arquivo in tqdm(arquivos, desc='Processamento Boletos'):
-            path = f'{self.dir_bol}/{arquivo}'
+        arquivos: List[str] = os.listdir(diretorio)
+        for arquivo in tqdm(arquivos, desc=f'Processamento {tipo}'):
+            path = f'{diretorio}/{arquivo}'
             rows: List[str] = self.get_text(path)
             for row in rows:
-                if 'CPF/CNPJ:' in row:
+                if tipo == 'BOLETOS' and 'CPF/CNPJ:' in row:
                     cnpj = row.split()[-1]
                     cnpj = self.limpa_cnpj(cnpj)
                     break
+                elif tipo == 'NFs' and 'Retenções Federais' in row:
+                    cnpj = row[row.find(',') + 3:]
+                    cnpj = self.limpa_cnpj(cnpj)
+                    break
             else:
-                print(f'Arquivo [{arquivo}] falhou.')
+                self.init_dir(self.dest_falhas)
+                new_path = f'{self.dest_falhas}/{arquivo}'
+                shutil.copy(path, new_path)
                 continue
             # Cria a pasta para este CNPJ.
-            dest_cnpj: str = f'{self.dest_bol}/{cnpj}'
+            dest_cnpj = f'{self.dest}/{cnpj}'
             self.init_dir(dest_cnpj)
             # Define o novo caminho do arquivo.
             new_path = f'{dest_cnpj}/{arquivo}'
@@ -59,10 +71,9 @@ class Aut:
 
     def run(self) -> None:
         self.init_dir(self.dest)  # Inicializa o diretório de destino principal.
-        self.init_dir(self.dest_bol)  # Inicializa o diretório de destino dos boletos.
-        self.init_dir(self.dest_nfs)  # Inicializa o diretório de destino das notas fiscais.
 
-        self.processa_boletos()
+        self.processa_arquivos('BOLETOS')
+        self.processa_arquivos('NFs')
 
 
 if __name__ == "__main__":
