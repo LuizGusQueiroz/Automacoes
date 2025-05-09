@@ -1,56 +1,67 @@
-import os
-import shutil
+from PyPDF2 import PdfReader
 from typing import List
+from tqdm import tqdm
+import shutil
+import os
 
 
 class Aut:
-    def __init__(self, bol_dir: str, nfs_dir: str, dest: str = 'Arquivos') -> None:
-        self.bol_dir = bol_dir  # Diretório dos boletos.
-        self.nfs_dir = nfs_dir  # Diretório das notas fiscais.
+    def __init__(self, dir_bol: str, dir_nfs: str, dest: str = 'Arquivos') -> None:
+        self.dir_bol = dir_bol  # Diretório dos boletos.
+        self.nfs_dir = dir_nfs  # Diretório das notas fiscais.
         self.dest = dest  # Diretório de destino dos arquivos.
         self.dest_bol = f'{dest}/BOLETOS'  # Diretório de destino dos boletos.
         self.dest_nfs = f'{dest}/NOTAS FISCAIS'  # Diretório de destino das notas fiscais.
 
-    def init_dir(self) -> None:
-        """Inicializa o diretório de destino dos arquivos."""
-        if not os.path.exists(self.dest):
-            os.mkdir(self.dest)
-            os.mkdir(self.dest_bol)
-            os.mkdir(self.dest_nfs)
+    def init_dir(self, diretorio: str) -> None:
+        """Inicializa o diretório fornecido."""
+        if not os.path.exists(diretorio):
+            os.mkdir(diretorio)
+
+    def get_text(self, path: str) -> List[str]:
+        """
+        Acessa o texto do pdf que está no caminho fornecido.
+        :param path: Caminho para o pdf.
+        """
+        if not os.path.exists(path):
+            return []
+        with open(path, 'rb') as file_bin:
+            pdf = PdfReader(file_bin)
+            page0 = pdf.pages[0]
+            return page0.extract_text().split('\n')
+
+    def limpa_cnpj(self, cnpj: str) -> str:
+        """Deixa o cnpj com apenas números."""
+        cnpj = ''.join([char for char in cnpj if char.isnumeric()])
+        return cnpj
 
     def processa_boletos(self) -> None:
         # Lista os arquivos do diretório de boletos.
-        arquivos: List[str] = os.listdir(self.bol_dir)
-        # Padroniza o nome dos arquivos, já que alguns tem '_' no lugar de ' ' entre os itens.
-        arquivos_tratados: List[str] = [arquivo.replace('_', ' ') for arquivo in arquivos]
-        # Separa as informações de cada arquivo.
-        arquivos_tratados: List[List[str]] = [arquivo.split('-') for arquivo in arquivos_tratados]
-        # Remove as informações de dia e número de boleto de cada arquivo.
-        arquivos_tratados: List[List[str]] = [arquivo[1:-1] for arquivo in arquivos_tratados]
-        # Converte cada arquivo que está como lista em string novamente.
-        arquivos_tratados: List[str] = [' '.join(arquivo) for arquivo in arquivos_tratados]
-        # Remove espaços excedentes no meio dos arquivos.
-        arquivos_tratados = [' '.join([nome.strip() for nome in arquivo.split()]) for arquivo in arquivos_tratados]
-
-        # Percorre cada arquivo e nome_tratado ao mesmo tempo.
-        for arquivo, nome in zip(arquivos, arquivos_tratados):
-            dest_dir: str = f'{self.dest_bol}/{nome}'  # Pasta de destino para o arquivo atual.
-            # Verifica se a pasta já existe.
-            if not os.path.exists(dest_dir):
-                os.mkdir(dest_dir)
-            # Adiciona ao nome do arquivo a pasta onde está, para poder ser encontrado.
-            old_path = f'{self.bol_dir}/{arquivo}'
-            """
-            O nome dos arquivos ficam grandes demais, por causa do nome das pastas, gerando erro na hora de mudar,
-            por isso, no nome dos arquivos será salvo apenas a data e o número do boleto, sendo estes
-            arquivo.split('-')[0:3] e arquivo.split('-')[-1], respectivamente.
-            """
-            new_path = f'{dest_dir}/{arquivo.split('-')[0]}-{arquivo.split('-')[-1]}'
-            # Move o arquivo atual para a sua pasta.
-            shutil.copy(old_path, new_path)
+        arquivos: List[str] = os.listdir(self.dir_bol)
+        for arquivo in tqdm(arquivos, desc='Processamento Boletos'):
+            path = f'{self.dir_bol}/{arquivo}'
+            rows: List[str] = self.get_text(path)
+            for row in rows:
+                if 'CPF/CNPJ:' in row:
+                    cnpj = row.split()[-1]
+                    cnpj = self.limpa_cnpj(cnpj)
+                    break
+            else:
+                print(f'Arquivo [{arquivo}] falhou.')
+                continue
+            # Cria a pasta para este CNPJ.
+            dest_cnpj: str = f'{self.dest_bol}/{cnpj}'
+            self.init_dir(dest_cnpj)
+            # Define o novo caminho do arquivo.
+            new_path = f'{dest_cnpj}/{arquivo}'
+            # Copia o arquivo para a pasta do seu CNPJ.
+            shutil.copy(path, new_path)
 
     def run(self) -> None:
-        self.init_dir()
+        self.init_dir(self.dest)  # Inicializa o diretório de destino principal.
+        self.init_dir(self.dest_bol)  # Inicializa o diretório de destino dos boletos.
+        self.init_dir(self.dest_nfs)  # Inicializa o diretório de destino das notas fiscais.
+
         self.processa_boletos()
 
 
