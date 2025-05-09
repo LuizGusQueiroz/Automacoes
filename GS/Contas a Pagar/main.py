@@ -84,6 +84,7 @@ class Aut:
                     continue
             estabelecimento: str = row['EST_nome']
             vencimento: str = row['dt_vencimento']
+            cod_cpg: str = row['COD_cpg']
             dir_est: str = f'{self.dir_dest}/{estabelecimento}'
             dir_ven: str = f'{dir_est}/{vencimento}'
             # Verifica se já existe a pasta do estabelecimento.
@@ -91,8 +92,24 @@ class Aut:
             self.init_dir(dir_ven)
             # Define o novo caminho do arquivo.
             nome = path.split('\\')[-1]  # Acessa o nome do arquivo.
-            new_path = f'{dir_ven}/{nome}'  # Junta com o diretório de destino do vencimento.
-            shutil.copy(path, new_path)
+            extensao = nome[nome.rfind('.'):]  # Acessa a extensão do arquivo.
+            nome = nome[:nome.rfind('.')]  # Remove a extensão do nome do arquivo.
+            # Define o nome junto do codigo do CPG, nome antigo e o vencimento.
+            novo_nome = f'{cod_cpg} - {nome} - {vencimento}{extensao}'
+            new_path = f'{dir_ven}/{novo_nome}'  # Junta o novo nome com o diretório de destino do vencimento.
+            try:
+                shutil.copy(path, new_path)
+            except FileNotFoundError:
+                # Pode ocorrer file not found error quando o nome do arquivo é muito grande.
+                # Então vai ser tentado apenas diminuir o tamanho do arquivo.
+                # O i cria um id para os arquivos, para não haver arquivos de mesmo nome.
+                i = len(os.listdir(dir_ven))
+                novo_nome = f'{cod_cpg}-{i}-{vencimento}{extensao}'
+                try:
+                    shutil.copy(path, new_path)
+                except FileNotFoundError:
+                    # Se o erro persistir, o arquivo será ignorado.
+                    print(f'Falha em [{path}].')
 
 
 if __name__ == '__main__':
