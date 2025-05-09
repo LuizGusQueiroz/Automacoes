@@ -1,8 +1,15 @@
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
 from typing import Dict, List
+from datetime import datetime
 from tqdm import tqdm
 import pandas as pd
 import pymssql
 import shutil
+import time
 import os
 
 
@@ -11,9 +18,10 @@ class Aut:
         self.dir_dest = dir_dest
         self.creds: Dict[str, str] = self.get_creds()
         self.df: pd.DataFrame = self.get_data()
+        self.erros: List[List[str]] = []
 
     def get_creds(self) -> Dict[str, str]:
-        with open('creds.txt', 'r') as file:
+        with open('configs/db.txt', 'r') as file:
             rows: List[str] = file.read().split('\n')
             rows: List[List[str]] = [row.split(' = ') for row in rows]
             creds = {chave: valor for chave, valor in rows}
@@ -22,8 +30,8 @@ class Aut:
     def get_data(self) -> pd.DataFrame:
         try:
             # Cria a conexão.
-            conn = pymssql.connect(server=self.creds['server'], user=self.creds['user'],
-                                   password=self.creds['password'], database=self.creds['database'])
+            conn = pymssql.connect(server=self.creds['s'], user=self.creds['u'],
+                                   password=self.creds['p'], database=self.creds['d'])
             # Cria o cursor.
             cursor = conn.cursor()
             # Realiza a consulta da tabela da pedidos.
@@ -71,8 +79,16 @@ class Aut:
             os.mkdir(diretorio)
 
     def run(self) -> None:
-        # Cria a pasta de destino dos arquivos.
-        self.init_dir(self.dir_dest)
+        self.init_dir(self.dir_dest)  # Cria a pasta de destino dos arquivos.
+        st = time.time()
+        #self.processa_arquivos()
+        exec_time = time.time() - st  # Calcula o tempo de execução do código.
+        data = datetime.now().strftime("%d/%m/%Y")
+        values = [[data, 'Contas a Pagar', len(self.df), exec_time]]  # Valores para serem salvos no relatório.
+        self.salva_relatorio(values)
+        self.mostra_erros()
+
+    def processa_arquivos(self) -> None:
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
             path: str = row['path']
             # Verifica se o o arquivo existe.
@@ -109,7 +125,59 @@ class Aut:
                     shutil.copy(path, new_path)
                 except FileNotFoundError:
                     # Se o erro persistir, o arquivo será ignorado.
-                    print(f'Falha em [{path}].')
+                    self.erros.append([path, new_path])
+
+    def mostra_erros(self) -> None:
+        if self.erros:
+            print('Erros ocorridos:')
+            for erro in self.erros:
+                print(f'{erro[0]} -> {erro[1]}')
+        else:
+            print('Sem erros ocorridos.')
+        input('Digite enter para encerrar.')
+
+    def salva_relatorio(self, row: List[List]):
+        SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+        SAMPLE_SPREADSHEET_ID = "15gGHm67_W5maIas-4_YPSzE6R5f_CNJGcza_BJFlNBk"  # Código da planilha
+        SAMPLE_RANGE_NAME = "Página1!A{}:D1000"  # Intervalo que será lido
+        creds = None
+        if os.path.exists("configs/token.json"):
+            creds = Credentials.from_authorized_user_file("configs/token.json", SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "configs/client.json", SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open("configs/token.json", "w") as token:
+                token.write(creds.to_json())
+
+        try:
+            service = build("sheets", "v4", credentials=creds)
+
+            # Call the Sheets API
+            sheet = service.spreadsheets()
+            result = (
+                sheet.values()
+                .get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(2))
+                .execute()
+            )
+            values = result.get("values", [])
+
+            idx = 2 + len(values)
+
+            result = (
+                sheet.values()
+                .update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(idx),
+                        valueInputOption='USER_ENTERED', body={"values": row})
+                .execute()
+            )
+
+        except HttpError as err:
+            print(err)
 
 
 if __name__ == '__main__':
