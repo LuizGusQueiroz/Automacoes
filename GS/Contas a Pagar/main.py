@@ -1,8 +1,16 @@
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from googleapiclient.errors import HttpError
+from googleapiclient.discovery import build
 from typing import Dict, List
+from datetime import datetime
 from tqdm import tqdm
 import pandas as pd
+import openpyxl
 import pymssql
 import shutil
+import time
 import os
 
 
@@ -10,25 +18,35 @@ class Aut:
     def __init__(self, dir_dest: str = 'Arquivos'):
         self.dir_dest = dir_dest
         self.creds: Dict[str, str] = self.get_creds()
+        self.vencimento: str = self.get_vencimento()
         self.df: pd.DataFrame = self.get_data()
+        self.erros: List[List[str]] = []
 
     def get_creds(self) -> Dict[str, str]:
-        with open('creds.txt', 'r') as file:
+        with open('configs/db.txt', 'r') as file:
             rows: List[str] = file.read().split('\n')
             rows: List[List[str]] = [row.split(' = ') for row in rows]
             creds = {chave: valor for chave, valor in rows}
         return creds
 
+    def get_vencimento(self) -> str:
+        with open('configs/configuracoes.txt', 'r') as file:
+            rows: List[str] = file.read().split('\n')
+            rows: List[List[str]] = [row.split(' = ') for row in rows]
+            creds = {chave: valor for chave, valor in rows}
+        return creds['data_vencimento']
+
     def get_data(self) -> pd.DataFrame:
         try:
             # Cria a conexão.
-            conn = pymssql.connect(server=self.creds['server'], user=self.creds['user'],
-                                   password=self.creds['password'], database=self.creds['database'])
+            conn = pymssql.connect(server=self.creds['s'], user=self.creds['u'],
+                                   password=self.creds['p'], database=self.creds['d'])
             # Cria o cursor.
             cursor = conn.cursor()
             # Realiza a consulta da tabela da pedidos.
             cursor.execute("""
                 SELECT
+                    EMP.Nome,
                     CPG.EST_Codigo, 
                     EST.Nome AS EST_Nome,
                     VCP.[Data] AS DT_VENCIMENTO,
@@ -44,6 +62,8 @@ class Aut:
                     ON VCP.EMP_Codigo = CPG.EMP_Codigo AND VCP.CPG_Codigo = CPG.Codigo
                 LEFT JOIN EST
                     ON EST.EMP_Codigo = CPG.EMP_Codigo AND EST.Codigo = CPG.EST_Codigo
+                LEFT JOIN EMP
+                    ON EST.EMP_Codigo = EMP.Codigo 
                 WHERE CPG.CODIGO IS NOT NULL;
                 """)
             """
@@ -51,10 +71,12 @@ class Aut:
             um dicionário, com as chaves 'ped_codigo', que é o código do pedido, e 'path' que é o caminho até o arquivo
             referente ao pedido.
             """
-            columns = ['EST_Codigo', 'EST_nome', 'dt_vencimento', 'path', 'COD_cpg', 'sequencial']
+            columns = ['Grupo', 'EST_Codigo', 'EST_nome', 'dt_vencimento', 'path', 'COD_cpg', 'sequencial']
             df = pd.DataFrame(cursor.fetchall(), columns=columns)
             # Remove valores nulos.
             df.dropna( inplace=True)
+            # Remove valores do df com datas acima da data mínima.
+            df = self.filtra_data(df)
             # Corrige a coluna dt_vencimento.
             df['dt_vencimento'] = df['dt_vencimento'].dt.strftime('%d-%m-%Y')
             # Encerrando a conexão
@@ -71,8 +93,20 @@ class Aut:
             os.mkdir(diretorio)
 
     def run(self) -> None:
-        # Cria a pasta de destino dos arquivos.
-        self.init_dir(self.dir_dest)
+        self.init_dir(self.dir_dest)  # Cria a pasta de destino dos arquivos.
+        st = time.time()
+        self.processa_arquivos()
+        exec_time = time.time() - st  # Calcula o tempo de execução do código.
+        data = datetime.now().strftime("%d/%m/%Y")
+        values = [[data, 'Contas a Pagar', len(self.df), exec_time]]  # Valores para serem salvos no relatório.
+        self.salva_relatorio(values)
+        self.mostra_erros()
+
+    def filtra_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        data = pd.to_datetime(self.vencimento, format="%d/%m/%Y")
+        return df[df['dt_vencimento'] >= data]
+
+    def processa_arquivos(self) -> None:
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
             path: str = row['path']
             # Verifica se o o arquivo existe.
@@ -82,24 +116,95 @@ class Aut:
                 if not os.path.exists(path):
                     # Caso o arquivo não seja encontrado em nenhum servidor, é ignorado.
                     continue
+            grupo: str = row['Grupo']
             estabelecimento: str = row['EST_nome']
             vencimento: str = row['dt_vencimento']
-            dir_est: str = f'{self.dir_dest}/{estabelecimento}'
+            cod_cpg: str = row['COD_cpg']
+            dir_grupo: str = f'{self.dir_dest}/{grupo}'
+            dir_est: str = f'{dir_grupo}/{estabelecimento}'
             dir_ven: str = f'{dir_est}/{vencimento}'
-            # Verifica se já existe a pasta do estabelecimento.
+            # Verifica se já existe a pasta do grupo, estabelecimento e vencimento.
+            self.init_dir(dir_grupo)
             self.init_dir(dir_est)
             self.init_dir(dir_ven)
             # Define o novo caminho do arquivo.
             nome = path.split('\\')[-1]  # Acessa o nome do arquivo.
-            new_path = f'{dir_ven}/{nome}'  # Junta com o diretório de destino do vencimento.
-            shutil.copy(path, new_path)
+            extensao = nome[nome.rfind('.'):]  # Acessa a extensão do arquivo.
+            nome = nome[:nome.rfind('.')]  # Remove a extensão do nome do arquivo.
+            # Define o nome junto do codigo do CPG, nome antigo e o vencimento.
+            novo_nome = f'{cod_cpg} - {nome} - {vencimento}{extensao}'
+            new_path = f'{dir_ven}/{novo_nome}'  # Junta o novo nome com o diretório de destino do vencimento.
+            try:
+                shutil.copy(path, new_path)
+            except FileNotFoundError:
+                # Pode ocorrer file not found error quando o nome do arquivo é muito grande.
+                # Então vai ser tentado apenas diminuir o tamanho do arquivo.
+                # O i cria um id para os arquivos, para não haver arquivos de mesmo nome.
+                i = len(os.listdir(dir_ven))
+                novo_nome = f'{cod_cpg}-{i}-{vencimento}{extensao}'
+                try:
+                    shutil.copy(path, new_path)
+                except FileNotFoundError:
+                    # Se o erro persistir, o arquivo será ignorado.
+                    self.erros.append([path, new_path])
+
+    def mostra_erros(self) -> None:
+        if self.erros:
+            print('Erros ocorridos:')
+            for erro in self.erros:
+                print(f'{erro[0]} -> {erro[1]}')
+        else:
+            print('Sem erros ocorridos.')
+        input('Digite enter para encerrar.')
+
+    def salva_relatorio(self, row: List[List]):
+        SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+        SAMPLE_SPREADSHEET_ID = "15gGHm67_W5maIas-4_YPSzE6R5f_CNJGcza_BJFlNBk"  # Código da planilha
+        SAMPLE_RANGE_NAME = "Página1!A{}:D1000"  # Intervalo que será lido
+        creds = None
+        if os.path.exists("configs/token.json"):
+            creds = Credentials.from_authorized_user_file("configs/token.json", SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "configs/client.json", SCOPES
+                )
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open("configs/token.json", "w") as token:
+                token.write(creds.to_json())
+
+        try:
+            service = build("sheets", "v4", credentials=creds)
+
+            # Call the Sheets API
+            sheet = service.spreadsheets()
+            result = (
+                sheet.values()
+                .get(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(2))
+                .execute()
+            )
+            values = result.get("values", [])
+
+            idx = 2 + len(values)
+
+            result = (
+                sheet.values()
+                .update(spreadsheetId=SAMPLE_SPREADSHEET_ID, range=SAMPLE_RANGE_NAME.format(idx),
+                        valueInputOption='USER_ENTERED', body={"values": row})
+                .execute()
+            )
+
+        except HttpError as err:
+            print(err)
 
 
 if __name__ == '__main__':
     try:
         aut = Aut()
         aut.run()
-
     except Exception as e:
         print(e)
         input()
