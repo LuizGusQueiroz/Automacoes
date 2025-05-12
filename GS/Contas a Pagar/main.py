@@ -18,6 +18,7 @@ class Aut:
     def __init__(self, dir_dest: str = 'Arquivos'):
         self.dir_dest = dir_dest
         self.creds: Dict[str, str] = self.get_creds()
+        self.vencimento: str = self.get_vencimento()
         self.df: pd.DataFrame = self.get_data()
         self.erros: List[List[str]] = []
 
@@ -27,6 +28,13 @@ class Aut:
             rows: List[List[str]] = [row.split(' = ') for row in rows]
             creds = {chave: valor for chave, valor in rows}
         return creds
+
+    def get_vencimento(self) -> str:
+        with open('configs/configuracoes.txt', 'r') as file:
+            rows: List[str] = file.read().split('\n')
+            rows: List[List[str]] = [row.split(' = ') for row in rows]
+            creds = {chave: valor for chave, valor in rows}
+        return creds['data_vencimento']
 
     def get_data(self) -> pd.DataFrame:
         try:
@@ -67,6 +75,8 @@ class Aut:
             df = pd.DataFrame(cursor.fetchall(), columns=columns)
             # Remove valores nulos.
             df.dropna( inplace=True)
+            # Remove valores do df com datas acima da data mínima.
+            df = self.filtra_data(df)
             # Corrige a coluna dt_vencimento.
             df['dt_vencimento'] = df['dt_vencimento'].dt.strftime('%d-%m-%Y')
             # Encerrando a conexão
@@ -91,6 +101,10 @@ class Aut:
         values = [[data, 'Contas a Pagar', len(self.df), exec_time]]  # Valores para serem salvos no relatório.
         self.salva_relatorio(values)
         self.mostra_erros()
+
+    def filtra_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        data = pd.to_datetime(self.vencimento, format="%d/%m/%Y")
+        return df[df['dt_vencimento'] >= data]
 
     def processa_arquivos(self) -> None:
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
