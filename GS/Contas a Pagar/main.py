@@ -7,6 +7,7 @@ from typing import Dict, List
 from datetime import datetime
 from tqdm import tqdm
 import pandas as pd
+import openpyxl
 import pymssql
 import shutil
 import time
@@ -37,6 +38,7 @@ class Aut:
             # Realiza a consulta da tabela da pedidos.
             cursor.execute("""
                 SELECT
+                    EMP.Nome,
                     CPG.EST_Codigo, 
                     EST.Nome AS EST_Nome,
                     VCP.[Data] AS DT_VENCIMENTO,
@@ -52,6 +54,8 @@ class Aut:
                     ON VCP.EMP_Codigo = CPG.EMP_Codigo AND VCP.CPG_Codigo = CPG.Codigo
                 LEFT JOIN EST
                     ON EST.EMP_Codigo = CPG.EMP_Codigo AND EST.Codigo = CPG.EST_Codigo
+                LEFT JOIN EMP
+                    ON EST.EMP_Codigo = EMP.Codigo 
                 WHERE CPG.CODIGO IS NOT NULL;
                 """)
             """
@@ -59,7 +63,7 @@ class Aut:
             um dicionário, com as chaves 'ped_codigo', que é o código do pedido, e 'path' que é o caminho até o arquivo
             referente ao pedido.
             """
-            columns = ['EST_Codigo', 'EST_nome', 'dt_vencimento', 'path', 'COD_cpg', 'sequencial']
+            columns = ['Grupo', 'EST_Codigo', 'EST_nome', 'dt_vencimento', 'path', 'COD_cpg', 'sequencial']
             df = pd.DataFrame(cursor.fetchall(), columns=columns)
             # Remove valores nulos.
             df.dropna( inplace=True)
@@ -81,7 +85,7 @@ class Aut:
     def run(self) -> None:
         self.init_dir(self.dir_dest)  # Cria a pasta de destino dos arquivos.
         st = time.time()
-        #self.processa_arquivos()
+        self.processa_arquivos()
         exec_time = time.time() - st  # Calcula o tempo de execução do código.
         data = datetime.now().strftime("%d/%m/%Y")
         values = [[data, 'Contas a Pagar', len(self.df), exec_time]]  # Valores para serem salvos no relatório.
@@ -98,12 +102,15 @@ class Aut:
                 if not os.path.exists(path):
                     # Caso o arquivo não seja encontrado em nenhum servidor, é ignorado.
                     continue
+            grupo: str = row['Grupo']
             estabelecimento: str = row['EST_nome']
             vencimento: str = row['dt_vencimento']
             cod_cpg: str = row['COD_cpg']
-            dir_est: str = f'{self.dir_dest}/{estabelecimento}'
+            dir_grupo: str = f'{self.dir_dest}/{grupo}'
+            dir_est: str = f'{dir_grupo}/{estabelecimento}'
             dir_ven: str = f'{dir_est}/{vencimento}'
-            # Verifica se já existe a pasta do estabelecimento.
+            # Verifica se já existe a pasta do grupo, estabelecimento e vencimento.
+            self.init_dir(dir_grupo)
             self.init_dir(dir_est)
             self.init_dir(dir_ven)
             # Define o novo caminho do arquivo.
@@ -184,7 +191,6 @@ if __name__ == '__main__':
     try:
         aut = Aut()
         aut.run()
-
     except Exception as e:
         print(e)
         input()
