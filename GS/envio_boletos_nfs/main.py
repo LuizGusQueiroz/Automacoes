@@ -39,6 +39,8 @@ class GerenciadorDocumentos:
             primeira_pagina = leitor.pages[0]
             return primeira_pagina.extract_text().split('\n')
 
+# função pra encontrar os cnpj dos boletos ->
+
     def encontrar_cnpj_boleto(self, linhas_texto: List[str]) -> Optional[str]:
         """Encontra CNPJ no texto do boleto (prioriza o segundo CNPJ encontrado)"""
         cnpjs = []
@@ -57,6 +59,8 @@ class GerenciadorDocumentos:
         """Encontra todos os CNPJs em uma NF-e"""
         cnpjs = re.findall(self.CNPJ_PATTERN, texto)
         return [c for c in cnpjs if c != self.CNPJ_IGNORADO]
+
+# script de organizar os boletos ->
 
     def organizar_boletos(self) -> None:
         """Organiza boletos por CNPJ"""
@@ -84,6 +88,8 @@ class GerenciadorDocumentos:
             self.criar_diretorio(pasta_cnpj)
             
             shutil.copy2(caminho_completo, os.path.join(pasta_cnpj, arquivo))
+
+# script de organizar as nfs ->
 
     def organizar_nfs(self) -> None:
         """Organiza NF-es por CNPJ"""
@@ -119,6 +125,8 @@ class GerenciadorDocumentos:
                     
             except Exception as e:
                 print(f"\nErro ao processar {arquivo}: {e}")
+
+# script pra mesclar as pastas de mesmo cnpj ->
 
     def mesclar_pastas(self) -> None:
         """Mescla pastas de boletos e NF-es com mesmo CNPJ"""
@@ -184,6 +192,7 @@ if __name__ == "__main__":
     gerenciador = GerenciadorDocumentos()
     gerenciador.executar()
 
+# script dos emails ->
 
 CNPJ_PARA_EMAIL = {
     "00247732000180": "jcczzin223@gmail.com",
