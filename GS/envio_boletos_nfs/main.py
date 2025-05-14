@@ -195,15 +195,15 @@ if __name__ == "__main__":
 # script dos emails ->
 
 CNPJ_PARA_EMAIL = {
-    "00247732000180": "jcczzin223@gmail.com",
-    "00675570000181": "joaquimoliveira2@gmail.com",
-    "01727202000100": "luizgusqueiroz@gmail.com"
+    "00247732000180": "",
+    "00675570000181": "",
+    "01727202000100": ""
 }
 
 def enviar_emails_por_pasta(pasta_base):
-    remetente = "teste001py@gmail.com"
+    remetente = ""
     assunto_base = "Boletos e Notas Fiscais"
-    senha = "vhij jkge gwvr pfir"
+    senha = ""
     
     if not os.path.exists(pasta_base):
         print(f"Erro: Pasta base '{pasta_base}' não encontrada!")
@@ -283,7 +283,7 @@ Segue em anexo os documentos referentes ao CNPJ: {cnpj}.
 
 if __name__ == "__main__":
     print("=== Enviador Automático para CNPJs Mapeados ===")
-    print(f"Remetente: teste001py@gmail.com")
+    print(f"Remetente: ")
     print("CNPJs com e-mails definidos:")
     for cnpj, email in CNPJ_PARA_EMAIL.items():
         print(f" - {cnpj} -> {email}")
