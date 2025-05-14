@@ -187,14 +187,14 @@ if __name__ == "__main__":
 
 CNPJ_PARA_EMAIL = {
     "00247732000180": "jcczzin223@gmail.com",
-    "00675570000181": "teste001py@gmail.com",
+    "00675570000181": "joaquimoliveira2@gmail.com",
     "01727202000100": "luizgusqueiroz@gmail.com"
 }
 
 def enviar_emails_por_pasta(pasta_base):
-    remetente = "joaquimoliveira2@edu.unifor.br"
+    remetente = "teste001py@gmail.com"
     assunto_base = "Boletos e Notas Fiscais"
-    senha = "wdrm khid uluu lscy"
+    senha = "vhij jkge gwvr pfir"
     
     if not os.path.exists(pasta_base):
         print(f"Erro: Pasta base '{pasta_base}' não encontrada!")
@@ -235,12 +235,11 @@ def enviar_emails_por_pasta(pasta_base):
             msg['To'] = destinatario
             msg['Subject'] = f"{assunto_base} - CNPJ: {cnpj}"
             
-            corpo = f"""Bom dia,
+            corpo = f"""
 
 Segue em anexo os documentos referentes ao CNPJ: {cnpj}.
 
-Atenciosamente,
-Time de Contabilidade"""
+"""
             
             msg.attach(MIMEText(corpo, 'plain'))
             
