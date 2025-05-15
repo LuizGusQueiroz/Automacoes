@@ -110,7 +110,7 @@ class Aut:
         exec_time = time.time() - st  # Calcula o tempo de execução do código.
         data = datetime.now().strftime("%d/%m/%Y")
         values = [[data, 'Contas a Pagar', len(self.df), exec_time]]  # Valores para serem salvos no relatório.
-        #self.salva_relatorio(values)
+        self.salva_relatorio(values)
         self.mostra_erros()
 
     def filtra_data(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -123,7 +123,7 @@ class Aut:
             # Verifica se o arquivo existe em cada disco.
             all_possible_paths: List[str] = [path_orig] + [self.troca_disco(path_orig, disco) for disco in self.discos]
             for path in all_possible_paths:
-                if not os.path.exists(path):
+                if not os.path.exists(path) or not os.path.isfile(path):
                     continue
                 grupo: str = row['Grupo']
                 estabelecimento: str = row['EST_nome']
@@ -145,7 +145,7 @@ class Aut:
                 new_path = f'{dir_ven}/{novo_nome}'  # Junta o novo nome com o diretório de destino do vencimento.
                 try:
                     shutil.copy(path, new_path)
-                    continue
+                    break
                 except FileNotFoundError:
                     # Pode ocorrer file not found error quando o nome do arquivo é muito grande.
                     # Então vai ser tentado apenas diminuir o tamanho do arquivo.
@@ -157,14 +157,17 @@ class Aut:
                     except FileNotFoundError:
                         # Se o erro persistir, o arquivo será ignorado.
                         self.erros.append([path, new_path])
+                except PermissionError:
+                    self.erros.append(['Permissão negada', path])
             else:
                 self.erros.append(['não encontrado', path_orig])
 
     def mostra_erros(self) -> None:
         if self.erros:
-            print('Erros ocorridos:')
-            for erro in self.erros:
-                print(f'{erro[0]} -> {erro[1]}')
+            with open('erros.txt', 'w') as file:
+                for erro in self.erros:
+                    file.write(f'{erro[0]} -> {erro[1]}\n')
+            os.startfile('erros.txt')
         else:
             print('Sem erros ocorridos.')
         input('Digite enter para encerrar.')
