@@ -95,6 +95,7 @@ class Aut:
 
     def troca_disco(self, path: str, disco: str) -> str:
         # Troca o nome do disco, ex: C:\\ para D:\\ no nome do arquivo.
+        path = path[path.find('\\')+1:]  # Remove o nome do disco.
         return disco + path[path.find('\\')+1:]
 
     def init_dir(self, diretorio: str) -> None:
@@ -118,9 +119,9 @@ class Aut:
 
     def processa_arquivos(self) -> None:
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
-            path: str = row['path']
-            # Verifica se o o arquivo existe em cada disco.
-            all_possible_paths: List[str] = [path] + [self.troca_disco(path, disco) for disco in self.discos]
+            path_orig: str = row['path']
+            # Verifica se o arquivo existe em cada disco.
+            all_possible_paths: List[str] = [path_orig] + [self.troca_disco(path_orig, disco) for disco in self.discos]
             for path in all_possible_paths:
                 if not os.path.exists(path):
                     continue
@@ -157,7 +158,7 @@ class Aut:
                         # Se o erro persistir, o arquivo será ignorado.
                         self.erros.append([path, new_path])
             else:
-                self.erros.append(['não encontrado', path])
+                self.erros.append(['não encontrado', path_orig])
 
     def mostra_erros(self) -> None:
         if self.erros:
