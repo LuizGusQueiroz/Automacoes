@@ -93,9 +93,10 @@ class Aut:
         # Lista todos os discos e servidores disponíveis.
         return [part.mountpoint for part in psutil.disk_partitions(all=True)]
 
-    def troca_disco(self, path: str, disco: str) -> str:
+    def troca_disco(self, path: str, disco: str, ocorrencia: int) -> str:
         # Troca o nome do disco, ex: C:\\ para D:\\ no nome do arquivo.
-        path = path[path.find('\\')+1:]  # Remove o nome do disco.
+        if ocorrencia == 2:
+            path = path[path.find('\\')+1:]  # Remove o nome do disco.
         return disco + path[path.find('\\')+1:]
 
     def init_dir(self, diretorio: str) -> None:
@@ -121,7 +122,9 @@ class Aut:
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
             path_orig: str = row['path']
             # Verifica se o arquivo existe em cada disco.
-            all_possible_paths: List[str] = [path_orig] + [self.troca_disco(path_orig, disco) for disco in self.discos]
+            all_possible_paths: List[str] = [path_orig] + \
+                                            [self.troca_disco(path_orig, disco, 1) for disco in self.discos] + \
+                                            [self.troca_disco(path_orig, disco, 2) for disco in self.discos]
             for path in all_possible_paths:
                 if not os.path.exists(path) or not os.path.isfile(path):
                     continue
