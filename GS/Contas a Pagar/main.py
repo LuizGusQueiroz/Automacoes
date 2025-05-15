@@ -115,7 +115,7 @@ class Aut:
 
     def filtra_data(self, df: pd.DataFrame) -> pd.DataFrame:
         data = pd.to_datetime(self.vencimento, format="%d/%m/%Y")
-        return df[df['dt_vencimento'] >= data]
+        return df[df['dt_vencimento'] == data]
 
     def processa_arquivos(self) -> None:
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
