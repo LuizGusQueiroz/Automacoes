@@ -16,7 +16,7 @@ class GerenciadorDocumentos:
         self.base_dir = 'GS/CONDOMINIAIS'
         self.boletos_dir = os.path.join(self.base_dir, 'BOLETOS')
         self.nfs_dir = os.path.join(self.base_dir, 'NOTA FISCAL')
-        self.organizados_dir = 'arquivos_organizados'
+        self.organizados_dir = 'GS/arquivos_organizados'
         
         self.CNPJ_PATTERN = r'\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}'
         self.CNPJ_IGNORADO = "16.707.848/0001-95"
