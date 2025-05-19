@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
 
 def enviar_email(remetente, senha, destinatario, assunto, corpo, arquivos=[]):
-    """Função para enviar e-mail com anexos"""
+   
     msg = MIMEMultipart()
     msg['From'] = remetente
     msg['To'] = destinatario
@@ -42,7 +42,7 @@ def processar_cnpjs():
     pastas = os.listdir(base_path)
     
     for pasta in pastas:
-        if not (pasta.isdigit() and len(pasta) == 14):
+        if not (pasta.isdigit()):
             continue
             
         caminho_pasta = os.path.join(base_path, pasta)
@@ -59,7 +59,7 @@ def processar_cnpjs():
             destinatario = info.get('DESTINATARIO', '').strip()
             
             if not remetente or not senha or not destinatario:
-                print("Dados incompletos para envio de e-mail.")
+                print(f"Dados incompletos para envio de e-mail.{pasta}")
                 continue
             
             arquivos = []
@@ -69,7 +69,7 @@ def processar_cnpjs():
                     arquivos.append(caminho_arquivo)
             
             if not arquivos:
-                print("Nenhum arquivo encontrado para enviar.")
+                print(f"Nenhum arquivo encontrado para enviar. {pasta}")
                 continue
             
             assunto = f"Documentos para o CNPJ {pasta}"
