@@ -281,7 +281,7 @@ Sistema Automático"""
 
         server.quit()
         print(f"\nTotal de emails enviados com sucesso: {enviados}")
-        return enviados > 0a
+        return enviados > 0
 
     def executar(self) -> None: 
         print("\n=== INÍCIO DO PROCESSAMENTO ===")
