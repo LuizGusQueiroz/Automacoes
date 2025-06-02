@@ -10,6 +10,7 @@ import pandas as pd
 import openpyxl
 import pymssql
 import shutil
+import psutil
 import time
 import os
 
@@ -21,6 +22,7 @@ class Aut:
         self.vencimento: str = self.get_vencimento()
         self.df: pd.DataFrame = self.get_data()
         self.erros: List[List[str]] = []
+        self.discos: List[str] = self.listar_discos()
 
     def get_creds(self) -> Dict[str, str]:
         with open('configs/db.txt', 'r') as file:
@@ -87,6 +89,16 @@ class Aut:
         except Exception as e:
             print(f"Erro ao conectar ao banco de dados: {e}")
 
+    def listar_discos(self) -> List[str]:
+        # Lista todos os discos e servidores disponíveis.
+        return [part.mountpoint for part in psutil.disk_partitions(all=True)]
+
+    def troca_disco(self, path: str, disco: str, ocorrencia: int) -> str:
+        # Troca o nome do disco, ex: C:\\ para D:\\ no nome do arquivo.
+        if ocorrencia == 2:
+            path = path[path.find('\\')+1:]  # Remove o nome do disco.
+        return disco + path[path.find('\\')+1:]
+
     def init_dir(self, diretorio: str) -> None:
         """Inicializa o diretório de destino dos arquivos."""
         if not os.path.exists(diretorio):
@@ -104,55 +116,61 @@ class Aut:
 
     def filtra_data(self, df: pd.DataFrame) -> pd.DataFrame:
         data = pd.to_datetime(self.vencimento, format="%d/%m/%Y")
-        return df[df['dt_vencimento'] >= data]
+        return df[df['dt_vencimento'] == data]
 
     def processa_arquivos(self) -> None:
         for _, row in tqdm(self.df.iterrows(), total=len(self.df)):
-            path: str = row['path']
-            # Verifica se o o arquivo existe.
-            if not os.path.exists(path):
-                # Caso não existe, o arquivo é procurado no outro servidor.
-                path = path.replace('Y:\\CELULA FISCAL - FORTES', 'Z:')
-                if not os.path.exists(path):
-                    # Caso o arquivo não seja encontrado em nenhum servidor, é ignorado.
+            path_orig: str = row['path']
+            # Verifica se o arquivo existe em cada disco.
+            all_possible_paths: List[str] = [path_orig] + \
+                                            [self.troca_disco(path_orig, disco, 1) for disco in self.discos] + \
+                                            [self.troca_disco(path_orig, disco, 2) for disco in self.discos]
+            for path in all_possible_paths:
+                if not os.path.exists(path) or not os.path.isfile(path):
                     continue
-            grupo: str = row['Grupo']
-            estabelecimento: str = row['EST_nome']
-            vencimento: str = row['dt_vencimento']
-            cod_cpg: str = row['COD_cpg']
-            dir_grupo: str = f'{self.dir_dest}/{grupo}'
-            dir_est: str = f'{dir_grupo}/{estabelecimento}'
-            dir_ven: str = f'{dir_est}/{vencimento}'
-            # Verifica se já existe a pasta do grupo, estabelecimento e vencimento.
-            self.init_dir(dir_grupo)
-            self.init_dir(dir_est)
-            self.init_dir(dir_ven)
-            # Define o novo caminho do arquivo.
-            nome = path.split('\\')[-1]  # Acessa o nome do arquivo.
-            extensao = nome[nome.rfind('.'):]  # Acessa a extensão do arquivo.
-            nome = nome[:nome.rfind('.')]  # Remove a extensão do nome do arquivo.
-            # Define o nome junto do codigo do CPG, nome antigo e o vencimento.
-            novo_nome = f'{cod_cpg} - {nome} - {vencimento}{extensao}'
-            new_path = f'{dir_ven}/{novo_nome}'  # Junta o novo nome com o diretório de destino do vencimento.
-            try:
-                shutil.copy(path, new_path)
-            except FileNotFoundError:
-                # Pode ocorrer file not found error quando o nome do arquivo é muito grande.
-                # Então vai ser tentado apenas diminuir o tamanho do arquivo.
-                # O i cria um id para os arquivos, para não haver arquivos de mesmo nome.
-                i = len(os.listdir(dir_ven))
-                novo_nome = f'{cod_cpg}-{i}-{vencimento}{extensao}'
+                grupo: str = row['Grupo']
+                estabelecimento: str = row['EST_nome']
+                vencimento: str = row['dt_vencimento']
+                cod_cpg: str = row['COD_cpg']
+                dir_grupo: str = f'{self.dir_dest}/{grupo}'
+                dir_est: str = f'{dir_grupo}/{estabelecimento}'
+                dir_ven: str = f'{dir_est}/{vencimento}'
+                # Verifica se já existe a pasta do grupo, estabelecimento e vencimento.
+                self.init_dir(dir_grupo)
+                self.init_dir(dir_est)
+                self.init_dir(dir_ven)
+                # Define o novo caminho do arquivo.
+                nome = path.split('\\')[-1]  # Acessa o nome do arquivo.
+                extensao = nome[nome.rfind('.'):]  # Acessa a extensão do arquivo.
+                nome = nome[:nome.rfind('.')]  # Remove a extensão do nome do arquivo.
+                # Define o nome junto do codigo do CPG, nome antigo e o vencimento.
+                novo_nome = f'{cod_cpg} - {nome} - {vencimento}{extensao}'
+                new_path = f'{dir_ven}/{novo_nome}'  # Junta o novo nome com o diretório de destino do vencimento.
                 try:
                     shutil.copy(path, new_path)
+                    break
                 except FileNotFoundError:
-                    # Se o erro persistir, o arquivo será ignorado.
-                    self.erros.append([path, new_path])
+                    # Pode ocorrer file not found error quando o nome do arquivo é muito grande.
+                    # Então vai ser tentado apenas diminuir o tamanho do arquivo.
+                    # O i cria um id para os arquivos, para não haver arquivos de mesmo nome.
+                    i = len(os.listdir(dir_ven))
+                    novo_nome = f'{dir_ven}/{cod_cpg}-{i}-{vencimento}{extensao}'
+                    try:
+                        shutil.copy(path, novo_nome)
+                    except FileNotFoundError:
+                        # Se o erro persistir, o arquivo será ignorado.
+                        self.erros.append([path, new_path])
+                except PermissionError:
+                    self.erros.append(['Permissão negada', path])
+            else:
+                self.erros.append(['não encontrado', path_orig])
 
     def mostra_erros(self) -> None:
         if self.erros:
-            print('Erros ocorridos:')
-            for erro in self.erros:
-                print(f'{erro[0]} -> {erro[1]}')
+            with open('erros.txt', 'w') as file:
+                for erro in self.erros:
+                    file.write(f'{erro[0]} -> {erro[1]}\n')
+            os.startfile('erros.txt')
         else:
             print('Sem erros ocorridos.')
         input('Digite enter para encerrar.')
