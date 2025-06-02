@@ -1,4 +1,3 @@
-# parte única
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.edge.service import Service
@@ -10,6 +9,7 @@ from selenium import webdriver
 from time import sleep
 from sys import exit
 import pandas as pd
+import pyautogui
 import shutil
 import os
 
@@ -23,20 +23,29 @@ class Automacao:
         self.init_lista_datas()
         self.pasta_download = r'C:\Users\ADM\Downloads'
         self.pasta_destino = r'C:\Users\ADM\OneDrive - KMF - CONSULTORIA EMPRESARIAL E TREINAMENTOS LTDA - ME\HISEG - Sharepoint\somaseg_ordensServico'
-        self.pasta_download = f'{os.getcwd()}/Dw'
-        self.pasta_destino = f'{os.getcwd()}/Ds'
-        options = Options()
-        options.add_experimental_option('prefs', {
-            "download.default_directory": self.pasta_download,  # Pasta de download.
-            "download.prompt_for_download": False,  # Desativa o prompt de download.
-            "download.directory_upgrade": True,  # Atualiza a pasta de download sem prompt.
-            "safebrowsing.enabled": True  # Ativa a segurança de navegação.
-        })
-        # Inicializa o navegador.
-        self.nav = webdriver.Edge(service=Service(), options=options)
-        self.wait = WebDriverWait(self.nav, 30)
-        self.nav.maximize_window()
+        os.makedirs(self.pasta_download, exist_ok=True)
+        os.makedirs(self.pasta_destino, exist_ok=True)
+        self.nav, self.wait = self.init_nav()
 
+    def init_nav(self):
+        options = Options()
+        prefs = {
+            "download.default_directory": self.pasta_download,
+            "download.prompt_for_download": False,
+            "download.directory_upgrade": True,
+            "safebrowsing.enabled": True,  # Pode manter True agora
+            "plugins.always_open_pdf_externally": True
+        }
+        options.add_experimental_option("prefs", prefs)
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option("useAutomationExtension", False)
+        # Inicializa o navegador.
+        nav = webdriver.Edge(service=Service(), options=options)
+        wait = WebDriverWait(nav, 30)
+        nav.maximize_window()
+        nav.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        return nav, wait
     def espera_aparecer(self, xpath: str, by, n: int = 20):
         """
         Espera n segundos até que determinado item esteja na tela.
@@ -85,8 +94,8 @@ class Automacao:
             except Exception:
                 sleep(1)
 
-    def click(self, xpath, by=By.XPATH):
-        self.interact('click', xpath, by)
+    def click(self, xpath, by=By.XPATH, n: int = 5):
+        self.interact('click', xpath=xpath, by=by, n_tries=n)
 
     def write(self, xpath, keys='', by=By.XPATH):
         self.interact('write', xpath, keys, by)
@@ -136,7 +145,7 @@ class Automacao:
     def converte_para_csv(self, data_inicial, data_final):
         for file in os.listdir(self.pasta_download):
             if file.endswith('.xls'):
-                file_name = f'ordensServico_{data_inicial[-4:]}.{data_inicial[2:4]}'
+                file_name = f'ordensServico_{data_inicial[-4:]}.{data_final[2:4]}'
                 xls_file_name = f'{file_name}.xls'
                 shutil.move(os.path.join(self.pasta_download, file), os.path.join(self.pasta_destino, xls_file_name))
                 xls_file = os.path.join(self.pasta_destino, xls_file_name)
@@ -188,14 +197,31 @@ class Automacao:
             self.write('//*[@id="data-final"]', data_final)
             # Clica em 'Pesquisar'.
             self.click('//*[@id="form-search"]/div[9]/div/div/button[1]')
+            sleep(1)
+            # Rola até o fim da página.
+            pyautogui.scroll(-500)
             # Clica em 'Gerar planilha'.
             self.click('//*[@id="contentlayout"]/section[1]/div[2]/div/button[2]')
-            # Marca a caixa 'Mostrar atividades dos técnicos'.
-            self.click('/html/body/div[7]/form/div[1]/content/label/input')
+            sleep(1)
+            for _ in range(20):
+                for ii in range(5):
+                    try:
+                        # Marca a caixa 'Mostrar atividades dos técnicos'.
+                        self.click(f'/html/body/div[{7+ii}]/form/div[1]/content/label/input', n=1)
+                        print(f'/html/body/div[{7+ii}]/form/div[1]/content/label/input')
+                        break
+                    except Exception:
+                        pass
+                else:
+                    continue
+                break
+            else:
+                raise Exception('Não foi possível clicar em "Mostrar atividades dos técnicos"')
             # Clica em 'Gerar'.
             self.click('//*[@id="div-buttonsModalJS"]/div/div/button[1]')
             print(f"Executando download do arquivo de Ordens de Serviço no período de {data_inicial} até {data_final}")
             self.esperar_download()
+            sleep(3)
             print('Download concluído!')
             print('\n')
             self.converte_para_csv(data_inicial, data_final)
