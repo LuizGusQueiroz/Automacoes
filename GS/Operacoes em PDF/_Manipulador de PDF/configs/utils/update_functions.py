@@ -14,7 +14,7 @@ def get_last_version():
     # Endpoint da API para buscar o histórico de commits de um arquivo específico.
     url = f"https://api.github.com/repos/LuizGusQueiroz/Automacoes/commits"
     # Parâmetros da consulta, para buscar commits de um arquivo específico
-    params = {'path': "KMF/Operacoes em PDF/_Manipulador de PDF/main.exe"}
+    params = {'path': "GS/Operacoes em PDF/_Manipulador de PDF/main.exe"}
     try:
         # Envia a requisição GET para a API do GitHub
         response = requests.get(url, params=params)
